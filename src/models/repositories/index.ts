@@ -5,4 +5,3 @@ export {
   type CreateSubscriptionData,
   type SubscriptionWithStreamer,
 } from './SubscriptionRepository';
-

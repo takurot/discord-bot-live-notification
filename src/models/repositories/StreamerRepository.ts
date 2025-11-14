@@ -39,4 +39,3 @@ export class StreamerRepository {
     return this.prisma.streamer.findMany();
   }
 }
-

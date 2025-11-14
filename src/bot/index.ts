@@ -14,6 +14,10 @@ if (!DISCORD_BOT_TOKEN || !DISCORD_CLIENT_ID) {
   process.exit(1);
 }
 
+// 型安全性のための確認（上記のチェック後は必ず存在する）
+const botToken: string = DISCORD_BOT_TOKEN;
+const clientId: string = DISCORD_CLIENT_ID;
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
@@ -27,20 +31,20 @@ async function registerCommands() {
     },
   ];
 
-  const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
+  const rest = new REST({ version: '10' }).setToken(botToken);
 
   try {
     logger.info('Started refreshing application (/) commands.');
 
     if (DISCORD_GUILD_ID) {
       // 開発環境: Guildコマンドとして登録（即座に反映）
-      await rest.put(Routes.applicationGuildCommands(DISCORD_CLIENT_ID, DISCORD_GUILD_ID), {
+      await rest.put(Routes.applicationGuildCommands(clientId, DISCORD_GUILD_ID), {
         body: commands,
       });
       logger.info(`Successfully reloaded application (/) commands for guild ${DISCORD_GUILD_ID}.`);
     } else {
       // 本番環境: グローバルコマンドとして登録（最大1時間かかる場合あり）
-      await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), {
+      await rest.put(Routes.applicationCommands(clientId), {
         body: commands,
       });
       logger.info('Successfully reloaded application (/) commands globally.');
@@ -88,8 +92,7 @@ process.on('SIGTERM', () => {
 });
 
 // Botをログイン
-client.login(DISCORD_BOT_TOKEN).catch((error) => {
+client.login(botToken).catch((error) => {
   logger.error('Failed to login:', error);
   process.exit(1);
 });
-

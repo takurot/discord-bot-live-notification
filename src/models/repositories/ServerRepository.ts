@@ -29,4 +29,3 @@ export class ServerRepository {
     return this.prisma.server.findMany();
   }
 }
-

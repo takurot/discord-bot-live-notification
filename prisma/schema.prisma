@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Server {
+  id        String   @id @default(cuid())
+  serverId  String   @unique @map("server_id")
+  planType  String   @default("Free") @map("plan_type") // "Free" or "Pro"
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+
+  @@map("servers")
+}
+
+model Streamer {
+  id         String   @id @default(cuid())
+  streamerId String   @unique @map("streamer_id")
+  platform   String   // "Twitch" or "YouTube"
+  channelId  String   @map("channel_id") // Platform-specific channel ID
+  username   String   // Display name or username
+  lastStatus String   @default("Offline") @map("last_status") // "Live" or "Offline"
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+
+  @@map("streamers")
+}
+
+model Subscription {
+  id                  String   @id @default(cuid())
+  serverId            String   @map("server_id")
+  streamerId          String   @map("streamer_id")
+  notificationChannelId String @map("notification_channel_id")
+  customMessage       String?  @map("custom_message")
+  mentionRoleId       String?  @map("mention_role_id")
+  embedColor          String?  @map("embed_color")
+  embedFooter         String?  @map("embed_footer")
+  notificationMessageId String? @map("notification_message_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  server   Server   @relation(fields: [serverId], references: [serverId], onDelete: Cascade)
+  streamer Streamer @relation(fields: [streamerId], references: [streamerId], onDelete: Cascade)
+
+  @@unique([serverId, streamerId])
+  @@map("subscriptions")
+}
+

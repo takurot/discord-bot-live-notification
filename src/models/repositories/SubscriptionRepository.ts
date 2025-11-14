@@ -54,6 +54,20 @@ export class SubscriptionRepository {
     });
   }
 
+  async findByServerAndStreamer(
+    serverId: string,
+    streamerId: string
+  ): Promise<Subscription | null> {
+    return this.prisma.subscription.findUnique({
+      where: {
+        serverId_streamerId: {
+          serverId,
+          streamerId,
+        },
+      },
+    });
+  }
+
   async countByServerId(serverId: string): Promise<number> {
     const subscriptions = await this.prisma.subscription.findMany({
       where: { serverId },

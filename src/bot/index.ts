@@ -2,6 +2,14 @@ import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
 import dotenv from 'dotenv';
 import { logger } from '../utils/logger';
 import { handlePingCommand } from './commands/ping';
+import { handleNotifyAddCommand } from './commands/notify/add';
+import { TwitchApiClient } from '../services/twitch/TwitchApiClient';
+import {
+  ServerRepository,
+  StreamerRepository,
+  SubscriptionRepository,
+} from '../models/repositories';
+import { prisma } from '../models/prisma';
 
 dotenv.config();
 
@@ -18,6 +26,24 @@ if (!DISCORD_BOT_TOKEN || !DISCORD_CLIENT_ID) {
 const botToken: string = DISCORD_BOT_TOKEN;
 const clientId: string = DISCORD_CLIENT_ID;
 
+// Twitch API クライアントの初期化
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
+
+if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+  logger.warn('Missing Twitch API credentials. /notify add command will not work.');
+}
+
+const twitchApiClient =
+  TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET
+    ? new TwitchApiClient(TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET)
+    : null;
+
+// Repository インスタンスの作成
+const serverRepository = new ServerRepository(prisma);
+const streamerRepository = new StreamerRepository(prisma);
+const subscriptionRepository = new SubscriptionRepository(prisma);
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
@@ -28,6 +54,25 @@ async function registerCommands() {
     {
       name: 'ping',
       description: 'Botの応答速度を確認します',
+    },
+    {
+      name: 'notify',
+      description: '配信通知の管理',
+      options: [
+        {
+          name: 'add',
+          type: 1, // SUB_COMMAND
+          description: '配信者を監視リストに追加します',
+          options: [
+            {
+              name: 'url',
+              type: 3, // STRING
+              description: 'TwitchチャンネルのURL（例: https://www.twitch.tv/channelname）',
+              required: true,
+            },
+          ],
+        },
+      ],
     },
   ];
 
@@ -66,6 +111,26 @@ client.on('interactionCreate', async (interaction) => {
 
   if (interaction.commandName === 'ping') {
     await handlePingCommand(interaction);
+  } else if (interaction.commandName === 'notify') {
+    const subcommand = interaction.options.getSubcommand(false);
+
+    if (subcommand === 'add') {
+      if (!twitchApiClient) {
+        await interaction.reply({
+          content: '❌ Twitch APIの認証情報が設定されていません。Bot管理者にお問い合わせください。',
+          ephemeral: true,
+        });
+        return;
+      }
+
+      await handleNotifyAddCommand(
+        interaction,
+        twitchApiClient,
+        serverRepository,
+        streamerRepository,
+        subscriptionRepository
+      );
+    }
   }
 });
 

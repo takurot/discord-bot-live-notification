@@ -99,6 +99,37 @@ export class TwitchApiClient {
   }
 
   /**
+   * 複数のユーザー名からユーザー情報を取得
+   */
+  async getUsers(usernames: string[]): Promise<TwitchUser[]> {
+    if (usernames.length === 0) {
+      return [];
+    }
+
+    const token = await this.getAccessToken();
+    const loginParams = usernames.map((u) => `login=${u}`).join('&');
+
+    const response = await fetch(`https://api.twitch.tv/helix/users?${loginParams}`, {
+      headers: {
+        'Client-ID': this.clientId,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      logger.error('Failed to get Twitch users', {
+        usernames,
+        status: response.status,
+        statusText: response.statusText,
+      });
+      throw new Error(`Failed to get Twitch users: ${usernames.join(', ')}`);
+    }
+
+    const data = (await response.json()) as { data: TwitchUser[] };
+    return data.data;
+  }
+
+  /**
    * 配信ステータスを取得
    */
   async getStreamStatus(userId: string): Promise<TwitchStreamStatus> {

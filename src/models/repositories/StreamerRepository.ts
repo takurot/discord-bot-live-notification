@@ -35,6 +35,18 @@ export class StreamerRepository {
     });
   }
 
+  async findByPlatformAndChannelId(
+    platform: 'Twitch' | 'YouTube',
+    channelId: string
+  ): Promise<Streamer | null> {
+    return this.prisma.streamer.findFirst({
+      where: {
+        platform,
+        channelId,
+      },
+    });
+  }
+
   async findAll(): Promise<Streamer[]> {
     return this.prisma.streamer.findMany();
   }

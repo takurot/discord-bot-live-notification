@@ -5,6 +5,7 @@ jest.mock('@prisma/client', () => {
   const mockPrisma = {
     streamer: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       findMany: jest.fn(),
@@ -106,6 +107,41 @@ describe('StreamerRepository', () => {
         where: { streamerId: 'twitch_123456' },
         data: { lastStatus: 'Live' },
       });
+    });
+  });
+
+  describe('findByPlatformAndChannelId', () => {
+    it('should return streamer when found', async () => {
+      const mockStreamer = {
+        id: '1',
+        streamerId: 'twitch_123456',
+        platform: 'Twitch',
+        channelId: 'ninja',
+        username: 'Ninja',
+        lastStatus: 'Offline',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (mockPrisma.streamer.findFirst as jest.Mock).mockResolvedValue(mockStreamer);
+
+      const result = await repository.findByPlatformAndChannelId('Twitch', 'ninja');
+
+      expect(result).toEqual(mockStreamer);
+      expect(mockPrisma.streamer.findFirst).toHaveBeenCalledWith({
+        where: {
+          platform: 'Twitch',
+          channelId: 'ninja',
+        },
+      });
+    });
+
+    it('should return null when not found', async () => {
+      (mockPrisma.streamer.findFirst as jest.Mock).mockResolvedValue(null);
+
+      const result = await repository.findByPlatformAndChannelId('Twitch', 'nonexistent');
+
+      expect(result).toBeNull();
     });
   });
 });

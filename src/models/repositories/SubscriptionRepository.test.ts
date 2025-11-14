@@ -5,10 +5,10 @@ jest.mock('@prisma/client', () => {
   const mockPrisma = {
     subscription: {
       findMany: jest.fn(),
+      findUnique: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
       update: jest.fn(),
-      findUnique: jest.fn(),
     },
   };
   return {
@@ -139,6 +139,46 @@ describe('SubscriptionRepository', () => {
         where: { serverId: '123456789012345678' },
         select: { id: true },
       });
+    });
+  });
+
+  describe('findByServerAndStreamer', () => {
+    it('should return subscription when found', async () => {
+      const mockSubscription = {
+        id: '1',
+        serverId: '123456789012345678',
+        streamerId: 'twitch_123456',
+        notificationChannelId: '987654321098765432',
+        customMessage: null,
+        mentionRoleId: null,
+        embedColor: null,
+        embedFooter: null,
+        notificationMessageId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (mockPrisma.subscription.findUnique as jest.Mock).mockResolvedValue(mockSubscription);
+
+      const result = await repository.findByServerAndStreamer('123456789012345678', 'twitch_123456');
+
+      expect(result).toEqual(mockSubscription);
+      expect(mockPrisma.subscription.findUnique).toHaveBeenCalledWith({
+        where: {
+          serverId_streamerId: {
+            serverId: '123456789012345678',
+            streamerId: 'twitch_123456',
+          },
+        },
+      });
+    });
+
+    it('should return null when not found', async () => {
+      (mockPrisma.subscription.findUnique as jest.Mock).mockResolvedValue(null);
+
+      const result = await repository.findByServerAndStreamer('123456789012345678', 'twitch_123456');
+
+      expect(result).toBeNull();
     });
   });
 });

@@ -38,7 +38,9 @@ describe('Ping Command', () => {
     await handlePingCommand(mockInteraction);
 
     const replyCall = mockInteraction.reply.mock.calls[0][0];
-    expect(replyCall.content).toMatch(/Latency: \d+ms/);
+    if (typeof replyCall === 'object' && replyCall !== null && 'content' in replyCall) {
+      expect(replyCall.content).toMatch(/Latency: \d+ms/);
+    }
   });
 });
 

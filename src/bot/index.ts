@@ -1,4 +1,5 @@
-import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
+import { Client, GatewayIntentBits, MessageFlags, REST, Routes } from 'discord.js';
+import { EventEmitter } from 'events';
 import dotenv from 'dotenv';
 import { logger } from '../utils/logger';
 import { handlePingCommand } from './commands/ping';
@@ -8,6 +9,7 @@ import { handleNotifyRemoveCommand } from './commands/notify/remove';
 import { handleNotifyListCommand } from './commands/notify/list';
 import { handleNotifyTestCommand } from './commands/notify/test';
 import { TwitchApiClient } from '../services/twitch/TwitchApiClient';
+import { TwitchPollingService } from '../services/polling/TwitchPollingService';
 import {
   ServerRepository,
   StreamerRepository,
@@ -47,6 +49,23 @@ const twitchApiClient =
 const serverRepository = new ServerRepository(prisma);
 const streamerRepository = new StreamerRepository(prisma);
 const subscriptionRepository = new SubscriptionRepository(prisma);
+
+// イベントエミッターの作成
+const eventEmitter = new EventEmitter();
+
+// ポーリングサービスの作成
+let pollingService: TwitchPollingService | null = null;
+if (twitchApiClient) {
+  pollingService = new TwitchPollingService(
+    twitchApiClient,
+    subscriptionRepository,
+    streamerRepository,
+    eventEmitter
+  );
+}
+
+// ポーリング間隔（デフォルト: 5分）
+const POLLING_INTERVAL_MS = parseInt(process.env.POLLING_INTERVAL_MS || '300000', 10);
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
@@ -131,9 +150,17 @@ async function registerCommands() {
 }
 
 // Bot起動時の処理
-client.once('ready', () => {
+client.once('clientReady', () => {
   logger.info(`Logged in as ${client.user?.tag}!`);
   registerCommands();
+
+  // ポーリングサービスを開始
+  if (pollingService) {
+    logger.info(`Starting polling service with interval: ${POLLING_INTERVAL_MS}ms`);
+    pollingService.start(POLLING_INTERVAL_MS);
+  } else {
+    logger.warn('Polling service not initialized (missing Twitch API credentials)');
+  }
 });
 
 // インタラクション（スラッシュコマンド）の処理
@@ -151,7 +178,7 @@ client.on('interactionCreate', async (interaction) => {
       if (!twitchApiClient) {
         await interaction.reply({
           content: '❌ Twitch APIの認証情報が設定されていません。Bot管理者にお問い合わせください。',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -185,12 +212,18 @@ client.on('warn', (warning) => {
 // プロセス終了時の処理
 process.on('SIGINT', () => {
   logger.info('Received SIGINT, shutting down gracefully...');
+  if (pollingService) {
+    pollingService.stop();
+  }
   client.destroy();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   logger.info('Received SIGTERM, shutting down gracefully...');
+  if (pollingService) {
+    pollingService.stop();
+  }
   client.destroy();
   process.exit(0);
 });

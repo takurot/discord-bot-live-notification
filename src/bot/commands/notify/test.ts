@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { createLiveNotificationEmbed } from '../../../utils/notificationEmbed';
 import { logger } from '../../../utils/logger';
 
@@ -21,7 +21,7 @@ export async function handleNotifyTestCommand(
   await interaction.reply({
     content: '📬 テスト通知を送信します（配信開始の通知デザインプレビュー）',
     embeds: [embed],
-    ephemeral: true,
+    flags: MessageFlags.Ephemeral,
   });
 
   logger.info('Test notification sent', {

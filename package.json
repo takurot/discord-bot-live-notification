@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/bot/index.ts",
+    "dev:stable": "tsx src/bot/index.ts",
     "start": "node dist/bot/index.js",
     "test": "jest",
     "test:watch": "jest --watch",

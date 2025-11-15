@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import { SubscriptionRepository } from '../../../models/repositories/SubscriptionRepository';
 import { logger } from '../../../utils/logger';
 
@@ -6,7 +6,18 @@ export async function handleNotifyListCommand(
   interaction: ChatInputCommandInteraction,
   subscriptionRepository: SubscriptionRepository
 ): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  logger.info('handleNotifyListCommand started', {
+    interactionId: interaction.id,
+    guildId: interaction.guildId,
+  });
+
+  try {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    logger.info('deferReply succeeded');
+  } catch (error) {
+    logger.error('deferReply failed', { error });
+    throw error;
+  }
 
   const serverId = interaction.guildId;
 

@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import { ServerRepository } from '../../models/repositories/ServerRepository';
 import { SubscriptionRepository } from '../../models/repositories/SubscriptionRepository';
 import { logger } from '../../utils/logger';
@@ -85,7 +85,7 @@ export async function handleStatusCommand(
 
   await interaction.reply({
     embeds: [embed],
-    ephemeral: true,
+    flags: MessageFlags.Ephemeral,
   });
 
   logger.info('Status command executed', {

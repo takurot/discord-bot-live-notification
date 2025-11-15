@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { parseTwitchUrl } from '../../../utils/twitchUrlParser';
 import { TwitchApiClient } from '../../../services/twitch/TwitchApiClient';
 import { ServerRepository } from '../../../models/repositories/ServerRepository';
@@ -24,7 +24,7 @@ export async function handleNotifyAddCommand(
     await interaction.reply({
       content:
         '❌ 無効なTwitch URLです。正しい形式のURLを入力してください。例: https://www.twitch.tv/channelname',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
@@ -36,7 +36,7 @@ export async function handleNotifyAddCommand(
   if (!serverId || !channelId) {
     await interaction.reply({
       content: '❌ サーバーまたはチャンネル情報を取得できませんでした。',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
@@ -54,7 +54,7 @@ export async function handleNotifyAddCommand(
       await interaction.reply({
         content:
           '❌ 無料プランでは最大3枠まで登録できます。4枠目以降を追加するには、Proプランへのアップグレードが必要です。',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -65,7 +65,7 @@ export async function handleNotifyAddCommand(
   if (users.length === 0) {
     await interaction.reply({
       content: `❌ Twitchで「${channelName}」という配信者を見つけることができませんでした。URLを確認してください。`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
@@ -92,7 +92,7 @@ export async function handleNotifyAddCommand(
   if (existingSubscription) {
     await interaction.reply({
       content: `❌ 「${twitchUser.display_name}」は既に監視リストに登録されています。`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
     return;
   }
@@ -106,6 +106,6 @@ export async function handleNotifyAddCommand(
 
   await interaction.reply({
     content: `✅ Twitch配信者「${twitchUser.display_name}」を監視リストに追加しました！`,
-    ephemeral: true,
+    flags: MessageFlags.Ephemeral,
   });
 }

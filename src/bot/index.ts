@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { logger } from '../utils/logger';
 import { handlePingCommand } from './commands/ping';
 import { handleNotifyAddCommand } from './commands/notify/add';
+import { handleNotifyRemoveCommand } from './commands/notify/remove';
 import { TwitchApiClient } from '../services/twitch/TwitchApiClient';
 import {
   ServerRepository,
@@ -72,6 +73,19 @@ async function registerCommands() {
             },
           ],
         },
+        {
+          name: 'remove',
+          type: 1, // SUB_COMMAND
+          description: '監視リストから配信者を削除します',
+          options: [
+            {
+              name: 'url',
+              type: 3, // STRING
+              description: 'TwitchチャンネルのURL（例: https://www.twitch.tv/channelname）',
+              required: true,
+            },
+          ],
+        },
       ],
     },
   ];
@@ -130,6 +144,8 @@ client.on('interactionCreate', async (interaction) => {
         streamerRepository,
         subscriptionRepository
       );
+    } else if (subcommand === 'remove') {
+      await handleNotifyRemoveCommand(interaction, streamerRepository, subscriptionRepository);
     }
   }
 });

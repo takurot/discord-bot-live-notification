@@ -1,0 +1,10 @@
+# docker-compose.yml（今後実装予定）
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: streampulse_dev
+      POSTGRES_USER: streampulse
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"

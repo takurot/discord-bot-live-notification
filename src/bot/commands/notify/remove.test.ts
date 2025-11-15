@@ -92,7 +92,7 @@ describe('handleNotifyRemoveCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith('Twitch', 'ninja');
     expect(mockSubscriptionRepository.findByServerAndStreamer).toHaveBeenCalledWith(
       '123456789',
@@ -114,7 +114,7 @@ describe('handleNotifyRemoveCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
       content: '❌ Twitchで「invaliduser」という配信者を見つけることができませんでした。URLを確認してください。',
     });
@@ -141,7 +141,7 @@ describe('handleNotifyRemoveCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
       content: '❌ 「Ninja」は監視リストに登録されていません。',
     });
@@ -157,7 +157,7 @@ describe('handleNotifyRemoveCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
       content: '❌ 無効なTwitch URLです。正しい形式のURLを入力してください。例: https://www.twitch.tv/channelname',
     });
@@ -174,7 +174,7 @@ describe('handleNotifyRemoveCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
       content: '❌ サーバーIDが見つかりませんでした。このコマンドはサーバーでのみ使用できます。',
     });

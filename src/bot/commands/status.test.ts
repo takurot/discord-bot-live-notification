@@ -110,7 +110,7 @@ describe('handleStatusCommand', () => {
           }),
         }),
       ]),
-      ephemeral: true,
+      flags: 64, // MessageFlags.Ephemeral
     });
 
     expect(mockServerRepository.findAll).toHaveBeenCalled();

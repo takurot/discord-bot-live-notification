@@ -10,6 +10,7 @@ import { handleNotifyListCommand } from './commands/notify/list';
 import { handleNotifyTestCommand } from './commands/notify/test';
 import { TwitchApiClient } from '../services/twitch/TwitchApiClient';
 import { TwitchPollingService } from '../services/polling/TwitchPollingService';
+import { NotificationService } from '../services/notification/NotificationService'; // Added for P1-T12
 import {
   ServerRepository,
   StreamerRepository,
@@ -70,6 +71,11 @@ const POLLING_INTERVAL_MS = parseInt(process.env.POLLING_INTERVAL_MS || '300000'
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
+
+// 通知サービスの作成 (P1-T12)
+// コンストラクタでイベントリスナーを自動登録するため、変数への代入のみで機能する
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _notificationService = new NotificationService(client, subscriptionRepository, eventEmitter);
 
 // スラッシュコマンドを登録
 async function registerCommands() {

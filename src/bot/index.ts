@@ -2,6 +2,7 @@ import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
 import dotenv from 'dotenv';
 import { logger } from '../utils/logger';
 import { handlePingCommand } from './commands/ping';
+import { handleStatusCommand } from './commands/status';
 import { handleNotifyAddCommand } from './commands/notify/add';
 import { handleNotifyRemoveCommand } from './commands/notify/remove';
 import { handleNotifyListCommand } from './commands/notify/list';
@@ -57,6 +58,10 @@ async function registerCommands() {
     {
       name: 'ping',
       description: 'Botの応答速度を確認します',
+    },
+    {
+      name: 'status',
+      description: 'Botの稼働状況と統計情報を表示します',
     },
     {
       name: 'notify',
@@ -137,6 +142,8 @@ client.on('interactionCreate', async (interaction) => {
 
   if (interaction.commandName === 'ping') {
     await handlePingCommand(interaction);
+  } else if (interaction.commandName === 'status') {
+    await handleStatusCommand(interaction, serverRepository, subscriptionRepository);
   } else if (interaction.commandName === 'notify') {
     const subcommand = interaction.options.getSubcommand(false);
 

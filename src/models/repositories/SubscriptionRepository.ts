@@ -93,4 +93,8 @@ export class SubscriptionRepository {
       },
     });
   }
+
+  async findAll(): Promise<Subscription[]> {
+    return this.prisma.subscription.findMany();
+  }
 }

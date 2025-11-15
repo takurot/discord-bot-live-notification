@@ -5,6 +5,7 @@ import { handlePingCommand } from './commands/ping';
 import { handleNotifyAddCommand } from './commands/notify/add';
 import { handleNotifyRemoveCommand } from './commands/notify/remove';
 import { handleNotifyListCommand } from './commands/notify/list';
+import { handleNotifyTestCommand } from './commands/notify/test';
 import { TwitchApiClient } from '../services/twitch/TwitchApiClient';
 import {
   ServerRepository,
@@ -92,6 +93,11 @@ async function registerCommands() {
           type: 1, // SUB_COMMAND
           description: '監視中の配信者一覧を表示します',
         },
+        {
+          name: 'test',
+          type: 1, // SUB_COMMAND
+          description: '通知のテスト送信（デザイン確認用）',
+        },
       ],
     },
   ];
@@ -154,6 +160,8 @@ client.on('interactionCreate', async (interaction) => {
       await handleNotifyRemoveCommand(interaction, streamerRepository, subscriptionRepository);
     } else if (subcommand === 'list') {
       await handleNotifyListCommand(interaction, subscriptionRepository);
+    } else if (subcommand === 'test') {
+      await handleNotifyTestCommand(interaction);
     }
   }
 });

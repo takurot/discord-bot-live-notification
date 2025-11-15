@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import { parseTwitchUrl } from '../../../utils/twitchUrlParser';
 import { StreamerRepository } from '../../../models/repositories/StreamerRepository';
 import { SubscriptionRepository } from '../../../models/repositories/SubscriptionRepository';
@@ -9,7 +9,7 @@ export async function handleNotifyRemoveCommand(
   streamerRepository: StreamerRepository,
   subscriptionRepository: SubscriptionRepository
 ): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const url = interaction.options.getString('url', true);
   const serverId = interaction.guildId;

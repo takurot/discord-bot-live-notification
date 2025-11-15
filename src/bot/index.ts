@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
+import { Client, GatewayIntentBits, MessageFlags, REST, Routes } from 'discord.js';
 import { EventEmitter } from 'events';
 import dotenv from 'dotenv';
 import { logger } from '../utils/logger';
@@ -178,7 +178,7 @@ client.on('interactionCreate', async (interaction) => {
       if (!twitchApiClient) {
         await interaction.reply({
           content: '❌ Twitch APIの認証情報が設定されていません。Bot管理者にお問い合わせください。',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }

@@ -15,6 +15,23 @@ export interface TwitchStreamStatus {
   startedAt: string | null;
 }
 
+export interface TwitchStream {
+  id: string;
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  game_id: string;
+  game_name: string;
+  type: string;
+  title: string;
+  viewer_count: number;
+  started_at: string;
+  language: string;
+  thumbnail_url: string;
+  tag_ids: string[];
+  is_mature: boolean;
+}
+
 export class TwitchApiClient {
   private clientId: string;
   private clientSecret: string;
@@ -185,5 +202,39 @@ export class TwitchApiClient {
       thumbnailUrl: stream.thumbnail_url,
       startedAt: stream.started_at,
     };
+  }
+
+  /**
+   * 複数のユーザーIDの配信情報を取得（最大100件）
+   */
+  async getStreams(userIds: string[]): Promise<TwitchStream[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const token = await this.getAccessToken();
+    const userIdParams = userIds
+      .slice(0, 100)
+      .map((id) => `user_id=${id}`)
+      .join('&');
+
+    const response = await fetch(`https://api.twitch.tv/helix/streams?${userIdParams}`, {
+      headers: {
+        'Client-ID': this.clientId,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      logger.error('Failed to get Twitch streams', {
+        userIds,
+        status: response.status,
+        statusText: response.statusText,
+      });
+      throw new Error(`Failed to get Twitch streams`);
+    }
+
+    const data = (await response.json()) as { data: TwitchStream[] };
+    return data.data;
   }
 }

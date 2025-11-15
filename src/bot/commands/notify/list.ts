@@ -6,7 +6,18 @@ export async function handleNotifyListCommand(
   interaction: ChatInputCommandInteraction,
   subscriptionRepository: SubscriptionRepository
 ): Promise<void> {
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  logger.info('handleNotifyListCommand started', {
+    interactionId: interaction.id,
+    guildId: interaction.guildId,
+  });
+
+  try {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    logger.info('deferReply succeeded');
+  } catch (error) {
+    logger.error('deferReply failed', { error });
+    throw error;
+  }
 
   const serverId = interaction.guildId;
 

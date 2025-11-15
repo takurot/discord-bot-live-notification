@@ -150,7 +150,7 @@ async function registerCommands() {
 }
 
 // Bot起動時の処理
-client.once('ready', () => {
+client.once('clientReady', () => {
   logger.info(`Logged in as ${client.user?.tag}!`);
   registerCommands();
 

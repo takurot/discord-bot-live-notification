@@ -53,18 +53,18 @@ jobs:
           summary_file="coverage-summary.md"
 
           if [ -f coverage/coverage-summary.json ]; then
-            node - <<'NODE' > "$summary_file"
-            const summary = require('./coverage/coverage-summary.json');
-            const totals = summary.total ?? {};
-            const fmt = (metric) => (metric ? `${metric.covered}/${metric.total}` : 'n/a');
-            const pct = (metric) => (metric?.pct ?? 0).toFixed(2);
-            console.log('| Metric | Coverage | Covered |');
-            console.log('|--------|----------|---------|');
-            console.log(`| Lines | ${pct(totals.lines)}% | ${fmt(totals.lines)} |`);
-            console.log(`| Statements | ${pct(totals.statements)}% | ${fmt(totals.statements)} |`);
-            console.log(`| Functions | ${pct(totals.functions)}% | ${fmt(totals.functions)} |`);
-            console.log(`| Branches | ${pct(totals.branches)}% | ${fmt(totals.branches)} |`);
-            NODE
+            node <<'NODE' > "$summary_file"
+const summary = require('./coverage/coverage-summary.json');
+const totals = summary.total ?? {};
+const fmt = (metric) => (metric ? `${metric.covered}/${metric.total}` : 'n/a');
+const pct = (metric) => (metric?.pct ?? 0).toFixed(2);
+console.log('| Metric | Coverage | Covered |');
+console.log('|--------|----------|---------|');
+console.log(`| Lines | ${pct(totals.lines)}% | ${fmt(totals.lines)} |`);
+console.log(`| Statements | ${pct(totals.statements)}% | ${fmt(totals.statements)} |`);
+console.log(`| Functions | ${pct(totals.functions)}% | ${fmt(totals.functions)} |`);
+console.log(`| Branches | ${pct(totals.branches)}% | ${fmt(totals.branches)} |`);
+NODE
           else
             echo 'Coverage summary not available (tests may have failed before generating reports).' > "$summary_file"
           fi

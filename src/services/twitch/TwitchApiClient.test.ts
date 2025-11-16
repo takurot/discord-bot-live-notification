@@ -157,5 +157,78 @@ describe('TwitchApiClient', () => {
       });
     });
   });
+
+  describe('getStreams', () => {
+    beforeEach(() => {
+      jest.spyOn(client, 'getAccessToken').mockResolvedValue('token');
+    });
+
+    afterEach(() => {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    });
+
+    it('should retry when Twitch API returns error and eventually succeed', async () => {
+      jest.useFakeTimers();
+
+      const mockStreamsResponse = {
+        data: [
+          {
+            id: 'stream_1',
+            user_id: '123',
+            user_login: 'takurot',
+            user_name: 'Takurot',
+            game_id: '111',
+            game_name: 'Just Chatting',
+            type: 'live',
+            title: 'Hello',
+            viewer_count: 10,
+            started_at: '2024-01-01T00:00:00Z',
+            language: 'ja',
+            thumbnail_url: 'https://example.com/thumb.jpg',
+            tag_ids: [],
+            is_mature: false,
+          },
+        ],
+      };
+
+      (fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 503,
+          statusText: 'Service Unavailable',
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockStreamsResponse,
+        });
+
+      const promise = client.getStreams(['123']);
+
+      await jest.runOnlyPendingTimersAsync();
+
+      await expect(promise).resolves.toEqual(mockStreamsResponse.data);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw after exhausting retries', async () => {
+      jest.useFakeTimers();
+
+      (fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Error',
+      });
+
+      const expectation = expect(client.getStreams(['123'])).rejects.toThrow(
+        'Failed to get Twitch streams',
+      );
+
+      await jest.runAllTimersAsync();
+
+      await expectation;
+      expect(fetch).toHaveBeenCalledTimes(4);
+    });
+  });
 });
 

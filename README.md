@@ -118,6 +118,14 @@ npm start
 5. 作業終了時  
    `npm run docker:down`
 
+## デプロイ
+
+- 本番デプロイ手順（Railway / Render）、必要な環境変数、ポストデプロイチェックは `DEPLOY.md` にまとめています。
+- テンプレート:
+  - `railway.json`: Railway CLI で `railway up` を実行する際の設定（Nixpacks + workerサービス）
+  - `render.yaml`: Render Blueprint（Node worker + PostgreSQL）
+- いずれも `npm run build` → `npm run start` を前提としています。ローカルでも同じ手順で確認してからデプロイすることを推奨します。
+
 ## プロジェクト構造
 
 ```

@@ -1,10 +1,41 @@
-# docker-compose.yml（今後実装予定）
+version: "3.9"
+
 services:
   postgres:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_DB: streampulse_dev
       POSTGRES_USER: streampulse
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: streampulse
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streampulse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build:
+      context: .
+    command: npm run dev:stable
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://streampulse:streampulse@postgres:5432/streampulse_dev
+      NODE_ENV: development
+    volumes:
+      - ./:/app
+      - bot_node_modules:/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    tty: true
+    stdin_open: true
+
+volumes:
+  postgres_data:
+  bot_node_modules:

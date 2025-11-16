@@ -4,7 +4,7 @@ import { SubscriptionRepository } from '../../models/repositories/SubscriptionRe
 import { EventEmitter } from 'events';
 import { Subscription, Streamer } from '@prisma/client';
 import { TwitchStream } from '../twitch/TwitchApiClient';
-import { StreamStartedEvent } from '../polling/TwitchPollingService';
+import { StreamEndedEvent, StreamStartedEvent } from '../polling/TwitchPollingService';
 
 // モックの設定
 jest.mock('../../models/repositories/SubscriptionRepository');
@@ -74,7 +74,7 @@ describe('NotificationService', () => {
         fetch: mockFetch,
       },
     } as unknown as jest.Mocked<Client>;
-    
+
     // fetchをモック関数として扱えるようにする
     (mockClient.channels.fetch as jest.Mock) = mockFetch;
 
@@ -255,6 +255,88 @@ describe('NotificationService', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockChannel.send).toHaveBeenCalled();
+      expect(mockSubscriptionRepository.updateNotificationMessageId).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('streamEnded event handling', () => {
+    it('should update existing notification message when stream ends', async () => {
+      const mockMessage = {
+        edit: jest.fn().mockResolvedValue(undefined),
+      };
+      const mockChannel = {
+        messages: {
+          fetch: jest.fn().mockResolvedValue(mockMessage),
+        },
+      } as unknown as jest.Mocked<TextChannel>;
+
+      (mockClient.channels.fetch as jest.Mock).mockResolvedValue(mockChannel);
+
+      const subscriptionWithMessage: Subscription = {
+        ...mockSubscription,
+        notificationMessageId: 'message123',
+      };
+
+      const event: StreamEndedEvent = {
+        streamer: mockStreamer,
+        subscriptions: [subscriptionWithMessage],
+      };
+
+      eventEmitter.emit('streamEnded', event);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockClient.channels.fetch).toHaveBeenCalledWith('channel1');
+      expect(mockChannel.messages.fetch).toHaveBeenCalledWith('message123');
+      expect(mockMessage.edit).toHaveBeenCalledWith({
+        content: expect.stringContaining('配信は終了しました'),
+        embeds: [expect.any(EmbedBuilder)],
+      });
+      expect(mockSubscriptionRepository.updateNotificationMessageId).toHaveBeenCalledWith(
+        'server1',
+        'streamer1',
+        null,
+      );
+    });
+
+    it('should skip update when notificationMessageId is missing', async () => {
+      const event: StreamEndedEvent = {
+        streamer: mockStreamer,
+        subscriptions: [mockSubscription],
+      };
+
+      eventEmitter.emit('streamEnded', event);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockClient.channels.fetch).not.toHaveBeenCalled();
+      expect(mockSubscriptionRepository.updateNotificationMessageId).not.toHaveBeenCalled();
+    });
+
+    it('should handle message fetch errors gracefully', async () => {
+      const mockChannel = {
+        messages: {
+          fetch: jest.fn().mockRejectedValue(new Error('Unknown Message')),
+        },
+      } as unknown as jest.Mocked<TextChannel>;
+
+      (mockClient.channels.fetch as jest.Mock).mockResolvedValue(mockChannel);
+
+      const subscriptionWithMessage: Subscription = {
+        ...mockSubscription,
+        notificationMessageId: 'message123',
+      };
+
+      const event: StreamEndedEvent = {
+        streamer: mockStreamer,
+        subscriptions: [subscriptionWithMessage],
+      };
+
+      eventEmitter.emit('streamEnded', event);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockChannel.messages.fetch).toHaveBeenCalledWith('message123');
       expect(mockSubscriptionRepository.updateNotificationMessageId).not.toHaveBeenCalled();
     });
   });

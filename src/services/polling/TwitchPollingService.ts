@@ -63,24 +63,29 @@ export class TwitchPollingService {
         }
       }
 
-      // Twitch APIで配信状態を取得（channelIdで検索）
-      const channelIds = Array.from(streamerMap.values())
+      // Twitch APIで配信状態を取得（user_id＝streamerIdで検索）
+      const twitchUserIds = Array.from(streamerMap.values())
         .filter((s) => s.platform === 'Twitch')
-        .map((s) => s.channelId);
+        .map((s) => s.streamerId);
 
-      const liveStreams = await this.twitchApiClient.getStreams(channelIds);
-      const liveChannelIds = new Set(liveStreams.map((stream) => stream.user_id));
+      if (twitchUserIds.length === 0) {
+        logger.info('No Twitch streamers to poll');
+        return;
+      }
+
+      const liveStreams = await this.twitchApiClient.getStreams(twitchUserIds);
+      const liveUserIds = new Set(liveStreams.map((stream) => stream.user_id));
 
       logger.info(`Found ${liveStreams.length} live streams`);
 
       // 各配信者の状態をチェック
       for (const [streamerId, streamer] of streamerMap.entries()) {
-        const isLive = liveChannelIds.has(streamer.channelId);
+        const isLive = liveUserIds.has(streamer.streamerId);
         const wasLive = streamer.lastStatus === 'Live';
 
         // 配信開始を検知
         if (isLive && !wasLive) {
-          const streamData = liveStreams.find((s) => s.user_id === streamer.channelId);
+          const streamData = liveStreams.find((s) => s.user_id === streamer.streamerId);
           if (streamData) {
             logger.info(`Stream started: ${streamer.username}`, {
               streamerId,

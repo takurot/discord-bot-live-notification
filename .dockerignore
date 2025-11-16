@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+.git
+.github
+.vscode
+Dockerfile
+docker-compose.yml
+.env
+*.log
+tmp
+.DS_Store
+

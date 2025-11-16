@@ -9,12 +9,12 @@
 
 | Phase | 状態 | 完了タスク | 総タスク数 | 進捗率 |
 |-------|------|------------|------------|---------|
-| **Phase 1 (MVP)** | 🔄 進行中 | 14 | 19 | 74% |
+| **Phase 1 (MVP)** | 🔄 進行中 | 15 | 19 | 79% |
 | **Phase 2 (機能拡張)** | ⏸️ 未開始 | 0 | 9 | 0% |
 | **Phase 3 (運用強化)** | ⏸️ 未開始 | 0 | 4 | 0% |
 
-**最新コミット:** 15件  
-**実装ファイル:** 35個  
+**最新コミット:** 16件  
+**実装ファイル:** 37個  
 **テストファイル:** 22個  
 **総テスト数:** 86個（全てパス）
 
@@ -32,9 +32,10 @@
 - ✅ P1-T11: ポーリング管理コンポーネント実装
 - ✅ P1-T12: 通知送信サービス実装
 - ✅ P1-T13: 配信終了通知更新
-- ✅ P1-T14: エラーハンドリング＆ロギング強化 ⭐ NEW
+- ✅ P1-T14: エラーハンドリング＆ロギング強化
+- ✅ P1-T15: Docker Compose 環境構築 ⭐ NEW
 
-**次のタスク:** ⏳ P1-T15: Docker Compose 環境構築
+**次のタスク:** ⏳ P1-T16: CI/CD パイプライン構築
 
 ---
 
@@ -384,17 +385,21 @@
 
 ---
 
-#### **P1-T15: Docker Compose 環境構築**
+#### **✅ P1-T15: Docker Compose 環境構築** 【完了】
 - **説明:** ローカル開発環境をDocker Composeで統一
 - **内容:**
-  - `docker-compose.yml` 作成（Bot + PostgreSQL）
-  - `Dockerfile` 作成（Node.js 20 + TypeScript）
-  - 開発用スクリプト整備（`npm run dev`, `npm run migrate`）
-  - README.md にDocker環境セットアップ手順を追記
+  - `Dockerfile` を新規作成し、Node.js 20 + TypeScript 実行環境と Prisma Client 生成をコンテナ内で完結
+  - `docker-compose.yml` を刷新し、Bot + PostgreSQL の2サービス、ヘルスチェック、永続ボリューム、`.env` 共有、`DATABASE_URL` の自動上書きを実装
+  - `.dockerignore` でビルドコンテキストを最適化し、`package.json` に `npm run docker:*` 系（dev/migrate/logs/down）スクリプトを追加
+  - README に Docker Compose 手順と `POLLING_INTERVAL_MS` を追記し、環境変数表を更新
 - **依存:** P1-T01, P1-T02
 - **並列可能:** P1-T06以降と並行可能 ✅
-- **テスト:** ローカル起動確認
-- **PRサイズ:** 小（5〜8ファイル）
+- **テスト:** `npm test`, `npm run lint`
+- **PRサイズ:** 小（7ファイル）
+- **実装結果:**
+  - `npm run docker:dev` だけで Bot + DB を起動でき、`docker:migrate` でマイグレーションもコンテナ経由で統一
+  - Bot コンテナはホットリロード用ファイル共有と `node_modules` の匿名ボリューム分離により、ホスト側の開発体験を維持
+  - ドキュメントとスクリプトが同期され、チームメンバーが同一手順で環境構築できる状態になった
 
 ---
 

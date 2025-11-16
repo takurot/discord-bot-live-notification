@@ -76,6 +76,7 @@ npm start
 | `TWITCH_CLIENT_SECRET` | Twitch API Client Secret | ✅ |
 | `NODE_ENV` | 実行環境（development/production） | ❌ |
 | `LOG_LEVEL` | ログレベル（debug/info/warn/error） | ❌ |
+| `POLLING_INTERVAL_MS` | Twitchポーリング間隔（ミリ秒 / 既定: 300000） | ❌ |
 
 ## コマンド
 
@@ -93,6 +94,22 @@ npm start
 - `npm run prisma:generate` - Prisma Clientを生成
 - `npm run prisma:migrate` - データベースマイグレーションを実行
 - `npm run prisma:studio` - Prisma Studioを起動
+- `npm run docker:dev` - Docker ComposeでBot + PostgreSQLを起動
+- `npm run docker:migrate` - コンテナ経由でマイグレーションを実行
+- `npm run docker:logs` - Dockerコンテナのログをフォロー
+- `npm run docker:down` - Docker Compose環境を停止
+
+### Docker Compose でのローカル起動
+
+1. `.env` に必要な値を設定（`DATABASE_URL` はホスト用の設定で問題ありません。Botコンテナは自動で `postgres` サービスを参照します）
+2. 初回のみマイグレーションを実行  
+   `npm run docker:migrate`
+3. Bot と PostgreSQL を起動  
+   `npm run docker:dev`
+4. ログを確認したい場合  
+   `npm run docker:logs`
+5. 作業終了時  
+   `npm run docker:down`
 
 ## プロジェクト構造
 

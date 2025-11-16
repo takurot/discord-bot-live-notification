@@ -4,7 +4,7 @@ import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
 import { Streamer } from '@prisma/client';
 import { TwitchStream } from '../twitch/TwitchApiClient';
-import { StreamStartedEvent } from '../polling/TwitchPollingService';
+import { StreamEndedEvent, StreamStartedEvent } from '../polling/TwitchPollingService';
 
 export class NotificationService {
   private client: Client;
@@ -22,6 +22,7 @@ export class NotificationService {
 
     // イベントリスナーを登録
     this.eventEmitter.on('streamStarted', this.handleStreamStarted.bind(this));
+    this.eventEmitter.on('streamEnded', this.handleStreamEnded.bind(this));
   }
 
   /**
@@ -161,5 +162,93 @@ export class NotificationService {
    */
   private formatViewerCount(count: number): string {
     return `${count.toLocaleString('ja-JP')}人`;
+  }
+
+  /**
+   * 配信終了イベントを処理
+   */
+  private async handleStreamEnded(event: StreamEndedEvent): Promise<void> {
+    const { streamer, subscriptions } = event;
+
+    logger.info(`Updating notifications for stream end: ${streamer.username}`, {
+      streamerId: streamer.streamerId,
+      subscriptionCount: subscriptions.length,
+    });
+
+    for (const subscription of subscriptions) {
+      if (!subscription.notificationMessageId) {
+        logger.info('No notification message recorded, skipping stream end update', {
+          subscriptionId: subscription.id,
+          serverId: subscription.serverId,
+        });
+        continue;
+      }
+
+      try {
+        const channel = await this.client.channels.fetch(subscription.notificationChannelId);
+
+        if (!channel) {
+          logger.error(
+            `Channel not found for stream end update: ${subscription.notificationChannelId}`,
+            {
+              subscriptionId: subscription.id,
+              serverId: subscription.serverId,
+            }
+          );
+          continue;
+        }
+
+        if (
+          !('messages' in channel) ||
+          !channel.messages ||
+          typeof channel.messages.fetch !== 'function'
+        ) {
+          logger.error(
+            `Channel does not support message updates: ${subscription.notificationChannelId}`,
+            {
+              subscriptionId: subscription.id,
+              serverId: subscription.serverId,
+            }
+          );
+          continue;
+        }
+
+        const message = await channel.messages.fetch(subscription.notificationMessageId);
+        await message.edit({
+          content: `⚫ ${streamer.username} の配信は終了しました。`,
+          embeds: [this.createStreamEndedEmbed(streamer)],
+        });
+
+        await this.subscriptionRepository.updateNotificationMessageId(
+          subscription.serverId,
+          subscription.streamerId,
+          null
+        );
+
+        logger.info('Notification updated for stream end', {
+          subscriptionId: subscription.id,
+          channelId: subscription.notificationChannelId,
+        });
+      } catch (error) {
+        logger.error('Failed to update notification on stream end', {
+          error,
+          subscriptionId: subscription.id,
+          channelId: subscription.notificationChannelId,
+        });
+      }
+    }
+  }
+
+  /**
+   * 配信終了通知のEmbedを生成
+   */
+  private createStreamEndedEmbed(streamer: Streamer): EmbedBuilder {
+    return new EmbedBuilder()
+      .setTitle(`⚫ 配信終了: ${streamer.username}`)
+      .setDescription(
+        `[${streamer.username}](https://www.twitch.tv/${streamer.channelId}) の配信は終了しました。`
+      )
+      .setColor(0x2f3136)
+      .setTimestamp();
   }
 }

@@ -2,6 +2,7 @@ import { Client, GatewayIntentBits, MessageFlags, REST, Routes } from 'discord.j
 import { EventEmitter } from 'events';
 import dotenv from 'dotenv';
 import { logger } from '../utils/logger';
+import { registerGlobalErrorHandlers } from '../utils/globalErrorHandler';
 import { handlePingCommand } from './commands/ping';
 import { handleStatusCommand } from './commands/status';
 import { handleNotifyAddCommand } from './commands/notify/add';
@@ -19,6 +20,8 @@ import {
 import { prisma } from '../models/prisma';
 
 dotenv.config();
+
+const globalErrorHandlers = registerGlobalErrorHandlers();
 
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -219,6 +222,7 @@ process.on('SIGINT', () => {
   if (pollingService) {
     pollingService.stop();
   }
+  globalErrorHandlers.dispose();
   client.destroy();
   process.exit(0);
 });
@@ -228,6 +232,7 @@ process.on('SIGTERM', () => {
   if (pollingService) {
     pollingService.stop();
   }
+  globalErrorHandlers.dispose();
   client.destroy();
   process.exit(0);
 });

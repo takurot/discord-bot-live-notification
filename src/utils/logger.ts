@@ -1,6 +1,8 @@
 import { createLogger, format, transports } from 'winston';
 
-const logLevel = process.env.LOG_LEVEL || 'info';
+const nodeEnv = process.env.NODE_ENV || 'development';
+const defaultLevel = nodeEnv === 'development' ? 'debug' : 'info';
+const logLevel = process.env.LOG_LEVEL || defaultLevel;
 
 export const logger = createLogger({
   level: logLevel,
@@ -13,6 +15,7 @@ export const logger = createLogger({
   defaultMeta: { service: 'streampulse-bot' },
   transports: [
     new transports.Console({
+      handleExceptions: true,
       format: format.combine(
         format.colorize(),
         format.printf(({ timestamp, level, message, ...meta }) => {

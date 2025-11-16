@@ -1,4 +1,5 @@
 import { logger } from '../../utils/logger';
+import { retryWithExponentialBackoff } from '../../utils/retry';
 
 export interface TwitchUser {
   id: string;
@@ -218,23 +219,31 @@ export class TwitchApiClient {
       .map((id) => `user_id=${id}`)
       .join('&');
 
-    const response = await fetch(`https://api.twitch.tv/helix/streams?${userIdParams}`, {
-      headers: {
-        'Client-ID': this.clientId,
-        Authorization: `Bearer ${token}`,
+    const data = await retryWithExponentialBackoff(
+      async () => {
+        const response = await fetch(`https://api.twitch.tv/helix/streams?${userIdParams}`, {
+          headers: {
+            'Client-ID': this.clientId,
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          logger.error('Failed to get Twitch streams', {
+            userIds,
+            status: response.status,
+            statusText: response.statusText,
+          });
+          throw new Error(`Failed to get Twitch streams`);
+        }
+
+        return (await response.json()) as { data: TwitchStream[] };
       },
-    });
+      {
+        operationName: 'getStreams',
+      }
+    );
 
-    if (!response.ok) {
-      logger.error('Failed to get Twitch streams', {
-        userIds,
-        status: response.status,
-        statusText: response.statusText,
-      });
-      throw new Error(`Failed to get Twitch streams`);
-    }
-
-    const data = (await response.json()) as { data: TwitchStream[] };
     return data.data;
   }
 }

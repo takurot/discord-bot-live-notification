@@ -1,0 +1,40 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "project": "streampulse-bot",
+  "defaultEnvironment": "production",
+  "plugins": [
+    {
+      "name": "postgresql",
+      "plan": "free"
+    }
+  ],
+  "deployments": [
+    {
+      "environment": "production",
+      "services": [
+        {
+          "name": "streampulse-bot",
+          "source": {
+            "type": "repo",
+            "path": "."
+          },
+          "build": "npm install && npm run build",
+          "start": "npm run start",
+          "restartPolicyType": "ON_FAILURE",
+          "envVars": {
+            "NODE_ENV": "production",
+            "LOG_LEVEL": "info",
+            "DISCORD_BOT_TOKEN": null,
+            "DISCORD_CLIENT_ID": null,
+            "DISCORD_GUILD_ID": null,
+            "TWITCH_CLIENT_ID": null,
+            "TWITCH_CLIENT_SECRET": null,
+            "POLLING_INTERVAL_MS": null,
+            "DATABASE_URL": null
+          }
+        }
+      ]
+    }
+  ]
+}
+

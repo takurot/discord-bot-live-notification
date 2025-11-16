@@ -73,9 +73,7 @@ const client = new Client({
 });
 
 // 通知サービスの作成 (P1-T12)
-// コンストラクタでイベントリスナーを自動登録するため、変数への代入のみで機能する
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _notificationService = new NotificationService(client, subscriptionRepository, eventEmitter);
+new NotificationService(client, subscriptionRepository, eventEmitter);
 
 // スラッシュコマンドを登録
 async function registerCommands() {

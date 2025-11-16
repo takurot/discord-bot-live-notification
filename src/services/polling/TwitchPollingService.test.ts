@@ -85,7 +85,7 @@ describe('TwitchPollingService', () => {
       await pollingService.pollOnce();
 
       expect(mockSubscriptionRepository.findAll).toHaveBeenCalled();
-      expect(mockTwitchApiClient.getStreams).toHaveBeenCalled();
+      expect(mockTwitchApiClient.getStreams).toHaveBeenCalledWith(['streamer1']);
     });
 
     it('should detect stream start and emit streamStarted event', async () => {
@@ -119,7 +119,7 @@ describe('TwitchPollingService', () => {
       const mockStreamData = [
         {
           id: 'stream1',
-          user_id: 'test_channel',
+          user_id: 'streamer1',
           user_login: 'testuser',
           user_name: 'TestUser',
           game_id: '12345',

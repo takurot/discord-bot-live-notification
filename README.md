@@ -90,10 +90,17 @@ npm start
 - `npm run test:coverage` - テストカバレッジを取得
 - `npm run lint` - ESLintでコードをチェック
 - `npm run lint:fix` - ESLintで自動修正
+- `npm run typecheck` - TypeScript型チェックのみ実行
 - `npm run format` - Prettierでコードをフォーマット
 - `npm run prisma:generate` - Prisma Clientを生成
 - `npm run prisma:migrate` - データベースマイグレーションを実行
 - `npm run prisma:studio` - Prisma Studioを起動
+# CI/CD
+
+- GitHub Actions（`.github/workflows/ci.yml`）で lint / typecheck / Jest（カバレッジ付き）を自動実行
+- テスト結果およびカバレッジは PR に自動コメントされ、`coverage/` ディレクトリはアーティファクトとして保存されます
+- ローカルで同等のチェックを行いたい場合は `npm run lint && npm run typecheck && npm run test:coverage -- --runInBand` を実行してください
+
 - `npm run docker:dev` - Docker ComposeでBot + PostgreSQLを起動
 - `npm run docker:migrate` - コンテナ経由でマイグレーションを実行
 - `npm run docker:logs` - Dockerコンテナのログをフォロー

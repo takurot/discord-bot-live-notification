@@ -80,7 +80,7 @@ describe('handleNotifyListCommand', () => {
 
     await handleNotifyListCommand(mockInteraction, mockSubscriptionRepository);
 
-    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockSubscriptionRepository.findByServerId).toHaveBeenCalledWith('123456789');
     expect(mockInteraction.editReply).toHaveBeenCalled();
     
@@ -97,7 +97,7 @@ describe('handleNotifyListCommand', () => {
 
     await handleNotifyListCommand(mockInteraction, mockSubscriptionRepository);
 
-    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockSubscriptionRepository.findByServerId).toHaveBeenCalledWith('123456789');
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
       content: '現在、監視中の配信者はいません。\n`/notify add` コマンドで配信者を追加してください。',
@@ -109,7 +109,7 @@ describe('handleNotifyListCommand', () => {
 
     await handleNotifyListCommand(mockInteraction, mockSubscriptionRepository);
 
-    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
       content: '❌ サーバーIDが見つかりませんでした。このコマンドはサーバーでのみ使用できます。',
     });

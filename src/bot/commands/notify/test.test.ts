@@ -33,7 +33,7 @@ describe('handleNotifyTestCommand', () => {
           }),
         }),
       ]),
-      ephemeral: true,
+      flags: 64, // MessageFlags.Ephemeral
     });
   });
 
@@ -49,12 +49,12 @@ describe('handleNotifyTestCommand', () => {
     }
   });
 
-  it('should be ephemeral message', async () => {
+  it('should use MessageFlags.Ephemeral', async () => {
     await handleNotifyTestCommand(mockInteraction);
 
     const replyCall = mockInteraction.reply.mock.calls[0][0];
-    if (typeof replyCall === 'object' && replyCall !== null && 'ephemeral' in replyCall) {
-      expect(replyCall.ephemeral).toBe(true);
+    if (typeof replyCall === 'object' && replyCall !== null && 'flags' in replyCall) {
+      expect(replyCall.flags).toBe(64); // MessageFlags.Ephemeral
     }
   });
 });

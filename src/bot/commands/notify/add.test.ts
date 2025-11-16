@@ -115,10 +115,10 @@ describe('handleNotifyAddCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.reply).toHaveBeenCalledWith({
-      content: '✅ Twitch配信者「Ninja」を監視リストに追加しました！',
-      ephemeral: true,
-    });
+      expect(mockInteraction.reply).toHaveBeenCalledWith({
+        content: '✅ Twitch配信者「Ninja」を監視リストに追加しました！',
+        flags: 64, // MessageFlags.Ephemeral
+      });
     expect(mockStreamerRepository.create).toHaveBeenCalled();
     expect(mockSubscriptionRepository.create).toHaveBeenCalled();
   });
@@ -202,7 +202,7 @@ describe('handleNotifyAddCommand', () => {
     expect(mockInteraction.reply).toHaveBeenCalledWith({
       content:
         '❌ 無料プランでは最大3枠まで登録できます。4枠目以降を追加するには、Proプランへのアップグレードが必要です。',
-      ephemeral: true,
+        flags: 64, // MessageFlags.Ephemeral
     });
     expect(mockStreamerRepository.create).not.toHaveBeenCalled();
     expect(mockSubscriptionRepository.create).not.toHaveBeenCalled();
@@ -232,7 +232,7 @@ describe('handleNotifyAddCommand', () => {
 
     expect(mockInteraction.reply).toHaveBeenCalledWith({
       content: '❌ Twitchで「invaliduser」という配信者を見つけることができませんでした。URLを確認してください。',
-      ephemeral: true,
+        flags: 64, // MessageFlags.Ephemeral
     });
     expect(mockStreamerRepository.create).not.toHaveBeenCalled();
   });
@@ -289,7 +289,7 @@ describe('handleNotifyAddCommand', () => {
 
     expect(mockInteraction.reply).toHaveBeenCalledWith({
       content: '❌ 「Ninja」は既に監視リストに登録されています。',
-      ephemeral: true,
+        flags: 64, // MessageFlags.Ephemeral
     });
     expect(mockSubscriptionRepository.create).not.toHaveBeenCalled();
   });
@@ -307,7 +307,7 @@ describe('handleNotifyAddCommand', () => {
 
     expect(mockInteraction.reply).toHaveBeenCalledWith({
       content: '❌ 無効なTwitch URLです。正しい形式のURLを入力してください。例: https://www.twitch.tv/channelname',
-      ephemeral: true,
+        flags: 64, // MessageFlags.Ephemeral
     });
   });
 });

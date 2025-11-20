@@ -172,6 +172,20 @@ describe('YouTubeApiClient', () => {
                 startedAt: null,
             });
         });
+
+        it('should throw error on API failure', async () => {
+            (global.fetch as jest.Mock).mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+                statusText: 'Internal Server Error',
+            });
+
+            await expect(client.getStreamStatus('UC12345')).rejects.toThrow('Failed to get YouTube stream status');
+            expect(logger.error).toHaveBeenCalledWith(
+                expect.stringContaining('Failed to get YouTube stream status'),
+                expect.any(Object)
+            );
+        });
     });
 
     describe('getVideoDetails', () => {

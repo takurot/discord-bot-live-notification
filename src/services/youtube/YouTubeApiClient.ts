@@ -94,7 +94,7 @@ export class YouTubeApiClient implements StreamProvider {
                 error,
                 channelId: userId,
             });
-            return null;
+            throw error; // Throw error so polling service knows it failed, rather than assuming offline
         }
     }
 

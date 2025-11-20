@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
-import { parseTwitchUrl } from '../../../utils/twitchUrlParser';
+import { detectPlatform, parseTwitchUrl, parseYoutubeUrl } from '../../../utils/urlParser';
 import { StreamerRepository } from '../../../models/repositories/StreamerRepository';
 import { SubscriptionRepository } from '../../../models/repositories/SubscriptionRepository';
 import { logger } from '../../../utils/logger';
@@ -22,23 +22,35 @@ export async function handleNotifyRemoveCommand(
     return;
   }
 
-  // URLパース
-  let channelName: string;
-  try {
-    channelName = parseTwitchUrl(url);
-  } catch (error: any) {
+  // プラットフォーム判定
+  const platform = detectPlatform(url);
+  if (!platform) {
     await interaction.editReply({
-      content:
-        '❌ 無効なTwitch URLです。正しい形式のURLを入力してください。例: https://www.twitch.tv/channelname',
+      content: '❌ 対応していないURLです。TwitchまたはYouTubeのチャンネルURLを入力してください。',
+    });
+    return;
+  }
+
+  // チャンネルID/ハンドル抽出
+  let channelIdentifier: string | null = null;
+  if (platform === 'Twitch') {
+    channelIdentifier = parseTwitchUrl(url);
+  } else if (platform === 'YouTube') {
+    channelIdentifier = parseYoutubeUrl(url);
+  }
+
+  if (!channelIdentifier) {
+    await interaction.editReply({
+      content: `❌ 無効な${platform} URLです。正しい形式のURLを入力してください。`,
     });
     return;
   }
 
   // Streamerの存在確認
-  const streamer = await streamerRepository.findByPlatformAndChannelId('Twitch', channelName);
+  const streamer = await streamerRepository.findByPlatformAndChannelId(platform, channelIdentifier);
   if (!streamer) {
     await interaction.editReply({
-      content: `❌ Twitchで「${channelName}」という配信者を見つけることができませんでした。URLを確認してください。`,
+      content: `❌ ${platform}で「${channelIdentifier}」という配信者を見つけることができませんでした。URLを確認してください。`,
     });
     return;
   }
@@ -60,6 +72,6 @@ export async function handleNotifyRemoveCommand(
   logger.info(`Subscription removed for server ${serverId} to streamer ${streamer.username}`);
 
   await interaction.editReply({
-    content: `✅ Twitch配信者「${streamer.username}」を監視リストから削除しました。`,
+    content: `✅ ${platform}配信者「${streamer.username}」を監視リストから削除しました。`,
   });
 }

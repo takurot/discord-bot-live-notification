@@ -50,10 +50,17 @@ export async function handleNotifyListCommand(
   // 配信者ごとにフィールドを追加
   subscriptions.forEach((sub, index) => {
     const platformEmoji = sub.streamer.platform === 'Twitch' ? '🎮' : '📺';
-    const channelUrl =
-      sub.streamer.platform === 'Twitch'
-        ? `https://www.twitch.tv/${sub.streamer.channelId}`
-        : `https://www.youtube.com/channel/${sub.streamer.channelId}`;
+    let channelUrl = '';
+    if (sub.streamer.platform === 'Twitch') {
+      channelUrl = `https://www.twitch.tv/${sub.streamer.channelId}`;
+    } else {
+      // YouTube
+      if (sub.streamer.channelId.startsWith('@')) {
+        channelUrl = `https://www.youtube.com/${sub.streamer.channelId}`;
+      } else {
+        channelUrl = `https://www.youtube.com/channel/${sub.streamer.channelId}`;
+      }
+    }
 
     embed.addFields({
       name: `${platformEmoji} ${index + 1}. ${sub.streamer.username}`,

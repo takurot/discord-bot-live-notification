@@ -6,6 +6,13 @@ import { SubscriptionRepository } from '../../../models/repositories/Subscriptio
 // モックの設定
 jest.mock('../../../models/repositories/StreamerRepository');
 jest.mock('../../../models/repositories/SubscriptionRepository');
+jest.mock('../../../utils/urlParser', () => ({
+  detectPlatform: jest.fn(),
+  parseTwitchUrl: jest.fn(),
+  parseYoutubeUrl: jest.fn(),
+}));
+
+import { detectPlatform, parseTwitchUrl, parseYoutubeUrl } from '../../../utils/urlParser';
 
 describe('handleNotifyRemoveCommand', () => {
   let mockInteraction: jest.Mocked<ChatInputCommandInteraction>;
@@ -46,9 +53,12 @@ describe('handleNotifyRemoveCommand', () => {
     jest.clearAllMocks();
   });
 
-  it('should successfully remove a subscribed streamer', async () => {
+  it('should successfully remove a subscribed Twitch streamer', async () => {
     // モックの設定
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.twitch.tv/ninja');
+    (detectPlatform as jest.Mock).mockReturnValue('Twitch');
+    (parseTwitchUrl as jest.Mock).mockReturnValue('ninja');
+
     mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue({
       id: 'streamer-1',
       streamerId: '123456',
@@ -104,8 +114,72 @@ describe('handleNotifyRemoveCommand', () => {
     });
   });
 
+  it('should successfully remove a subscribed YouTube streamer', async () => {
+    // モックの設定
+    (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.youtube.com/@YouTube');
+    (detectPlatform as jest.Mock).mockReturnValue('YouTube');
+    (parseYoutubeUrl as jest.Mock).mockReturnValue('YouTube');
+
+    mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue({
+      id: 'streamer-2',
+      streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      platform: 'YouTube',
+      channelId: 'YouTube',
+      username: 'YouTube',
+      lastStatus: 'Offline',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockSubscriptionRepository.findByServerAndStreamer.mockResolvedValue({
+      id: 'sub-2',
+      serverId: '123456789',
+      streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      notificationChannelId: '987654321',
+      customMessage: null,
+      mentionRoleId: null,
+      embedColor: null,
+      embedFooter: null,
+      notificationMessageId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockSubscriptionRepository.delete.mockResolvedValue({
+      id: 'sub-2',
+      serverId: '123456789',
+      streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      notificationChannelId: '987654321',
+      customMessage: null,
+      mentionRoleId: null,
+      embedColor: null,
+      embedFooter: null,
+      notificationMessageId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await handleNotifyRemoveCommand(
+      mockInteraction,
+      mockStreamerRepository,
+      mockSubscriptionRepository
+    );
+
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
+    expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith('YouTube', 'YouTube');
+    expect(mockSubscriptionRepository.findByServerAndStreamer).toHaveBeenCalledWith(
+      '123456789',
+      'UC-lHJZR3Gqxm24_Vd_AJ5Yw'
+    );
+    expect(mockSubscriptionRepository.delete).toHaveBeenCalledWith('123456789', 'UC-lHJZR3Gqxm24_Vd_AJ5Yw');
+    expect(mockInteraction.editReply).toHaveBeenCalledWith({
+      content: '✅ YouTube配信者「YouTube」を監視リストから削除しました。',
+    });
+  });
+
   it('should reject if streamer does not exist', async () => {
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.twitch.tv/invaliduser');
+    (detectPlatform as jest.Mock).mockReturnValue('Twitch');
+    (parseTwitchUrl as jest.Mock).mockReturnValue('invaliduser');
+
     mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue(null); // Streamer未存在
 
     await handleNotifyRemoveCommand(
@@ -123,6 +197,9 @@ describe('handleNotifyRemoveCommand', () => {
 
   it('should reject if not subscribed', async () => {
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.twitch.tv/ninja');
+    (detectPlatform as jest.Mock).mockReturnValue('Twitch');
+    (parseTwitchUrl as jest.Mock).mockReturnValue('ninja');
+
     mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue({
       id: 'streamer-1',
       streamerId: '123456',
@@ -150,6 +227,7 @@ describe('handleNotifyRemoveCommand', () => {
 
   it('should reject if invalid URL format', async () => {
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('invalid-url');
+    (detectPlatform as jest.Mock).mockReturnValue(null);
 
     await handleNotifyRemoveCommand(
       mockInteraction,
@@ -159,7 +237,7 @@ describe('handleNotifyRemoveCommand', () => {
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
-      content: '❌ 無効なTwitch URLです。正しい形式のURLを入力してください。例: https://www.twitch.tv/channelname',
+      content: '❌ 対応していないURLです。TwitchまたはYouTubeのチャンネルURLを入力してください。',
     });
     expect(mockSubscriptionRepository.delete).not.toHaveBeenCalled();
   });

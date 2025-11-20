@@ -3,7 +3,7 @@ import { SubscriptionRepository } from '../../models/repositories/SubscriptionRe
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
 import { Streamer } from '@prisma/client';
-import { TwitchStream } from '../twitch/TwitchApiClient';
+import { StreamProviderStream } from '../common/StreamProvider';
 import { StreamEndedEvent, StreamStartedEvent } from '../polling/TwitchPollingService';
 
 export class NotificationService {
@@ -55,7 +55,7 @@ export class NotificationService {
    */
   private async sendNotification(
     streamer: Streamer,
-    streamData: TwitchStream,
+    streamData: StreamProviderStream,
     subscription: {
       id: string;
       serverId: string;
@@ -122,35 +122,48 @@ export class NotificationService {
   /**
    * 配信通知Embedを生成
    */
-  private createStreamEmbed(_streamer: Streamer, streamData: TwitchStream): EmbedBuilder {
+  private createStreamEmbed(streamer: Streamer, streamData: StreamProviderStream): EmbedBuilder {
+    // プラットフォームに応じたURLとカラーを設定
+    const platformUrl = streamer.platform === 'YouTube'
+      ? `https://www.youtube.com/watch?v=${streamData.id}`
+      : `https://www.twitch.tv/${streamer.channelId}`;
+
+    const platformColor = streamer.platform === 'YouTube'
+      ? 0xff0000 // YouTube red
+      : 0x9146ff; // Twitch purple
+
     const embed = new EmbedBuilder()
       .setTitle(`🔴 ${streamData.title}`)
-      .setURL(`https://www.twitch.tv/${streamData.user_login}`)
-      .setColor(0x9146ff) // Twitch purple
+      .setURL(platformUrl)
+      .setColor(platformColor)
       .addFields(
         {
           name: '配信者',
-          value: streamData.user_name,
+          value: streamData.userDisplayName,
           inline: true,
         },
         {
           name: 'カテゴリ',
-          value: streamData.game_name || 'カテゴリなし',
+          value: streamData.gameName || 'カテゴリなし',
           inline: true,
         },
         {
           name: '視聴者数',
-          value: this.formatViewerCount(streamData.viewer_count),
+          value: this.formatViewerCount(streamData.viewerCount),
           inline: true,
         }
       )
-      .setTimestamp(new Date(streamData.started_at));
+      .setTimestamp(new Date(streamData.startedAt));
 
     // サムネイル画像を設定
-    if (streamData.thumbnail_url) {
-      const thumbnailUrl = streamData.thumbnail_url
-        .replace('{width}', '320')
-        .replace('{height}', '180');
+    if (streamData.thumbnailUrl) {
+      let thumbnailUrl = streamData.thumbnailUrl;
+      // Twitchの場合はプレースホルダーを置換
+      if (streamer.platform === 'Twitch') {
+        thumbnailUrl = thumbnailUrl
+          .replace('{width}', '320')
+          .replace('{height}', '180');
+      }
       embed.setThumbnail(thumbnailUrl);
     }
 
@@ -243,10 +256,15 @@ export class NotificationService {
    * 配信終了通知のEmbedを生成
    */
   private createStreamEndedEmbed(streamer: Streamer): EmbedBuilder {
+    // プラットフォームに応じたURLを設定
+    const platformUrl = streamer.platform === 'YouTube'
+      ? `https://www.youtube.com/${streamer.channelId}`
+      : `https://www.twitch.tv/${streamer.channelId}`;
+
     return new EmbedBuilder()
       .setTitle(`⚫ 配信終了: ${streamer.username}`)
       .setDescription(
-        `[${streamer.username}](https://www.twitch.tv/${streamer.channelId}) の配信は終了しました。`
+        `[${streamer.username}](${platformUrl}) の配信は終了しました。`
       )
       .setColor(0x2f3136)
       .setTimestamp();

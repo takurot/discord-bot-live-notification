@@ -207,6 +207,7 @@ describe('YouTubeApiClient', () => {
                 channelTitle: 'Test Channel',
                 thumbnailUrl: 'http://example.com/thumb.jpg',
                 publishedAt: '2023-01-01T00:00:00Z',
+                viewerCount: 0,
             });
         });
 

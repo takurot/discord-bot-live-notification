@@ -497,6 +497,19 @@
 
 ---
 
+#### **P2-T01.5: リファクタリング & 技術的負債の解消**
+- **説明:** `src/bot/index.ts` の整理とAPIクライアントの共通化
+- **内容:**
+  - `src/bot/index.ts` のコマンド登録・イベント処理を分離
+  - `CommandRegister`, `EventHandler` クラスの導入
+  - `StreamProvider` インターフェースによる Twitch/YouTube クライアントの共通化
+- **依存:** P2-T01
+- **並列可能:** ✅
+- **テスト:** ユニットテスト
+- **PRサイズ:** 中
+
+---
+
 #### **P2-T02: PubSubHubbub 実装（YouTube）**
 - **説明:** YouTubeのプッシュ通知受信サーバー構築
 - **内容:**

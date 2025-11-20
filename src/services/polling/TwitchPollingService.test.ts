@@ -152,8 +152,8 @@ describe('TwitchPollingService', () => {
         }),
         streamData: expect.objectContaining({
           title: 'Test Stream',
-          game_name: 'Just Chatting',
-          viewer_count: 100,
+          gameName: 'Just Chatting',
+          viewerCount: 100,
         }),
         subscriptions: expect.arrayContaining([
           expect.objectContaining({

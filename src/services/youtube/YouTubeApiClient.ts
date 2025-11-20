@@ -1,4 +1,5 @@
 import { logger } from '../../utils/logger';
+import { StreamProvider, StreamProviderUser, StreamProviderStream } from '../common/StreamProvider';
 
 export interface YouTubeChannel {
     id: string;
@@ -22,14 +23,56 @@ export interface YouTubeVideo {
     channelTitle: string;
     thumbnailUrl: string;
     publishedAt: string;
+    viewerCount?: number;
 }
 
-export class YouTubeApiClient {
+export class YouTubeApiClient implements StreamProvider {
     private apiKey: string;
     private baseUrl = 'https://www.googleapis.com/youtube/v3';
 
     constructor(apiKey: string) {
         this.apiKey = apiKey;
+    }
+
+    /**
+     * StreamProvider implementation: Get user by ID or name
+     */
+    async getUser(idOrName: string): Promise<StreamProviderUser | null> {
+        const channel = await this.getChannel(idOrName);
+        if (!channel) return null;
+
+        return {
+            id: channel.id,
+            name: channel.customUrl || channel.title, // YouTube doesn't always have a "username" like Twitch
+            displayName: channel.title,
+            url: `https://www.youtube.com/${channel.customUrl || 'channel/' + channel.id}`,
+            thumbnailUrl: channel.thumbnailUrl,
+        };
+    }
+
+    /**
+     * StreamProvider implementation: Get stream status
+     */
+    async getStream(userId: string): Promise<StreamProviderStream | null> {
+        const status = await this.getStreamStatus(userId);
+
+        if (!status.isLive || !status.videoId) {
+            return null;
+        }
+
+        // Get more details (viewer count)
+        const video = await this.getVideoDetails(status.videoId);
+
+        return {
+            id: status.videoId,
+            userId: userId,
+            userDisplayName: video?.channelTitle || 'Unknown',
+            title: status.title || video?.title || 'Unknown',
+            gameName: null, // YouTube doesn't have "game" in the same way, or requires more API calls
+            viewerCount: video?.viewerCount || 0,
+            startedAt: status.startedAt || video?.publishedAt || new Date().toISOString(),
+            thumbnailUrl: status.thumbnailUrl || video?.thumbnailUrl || '',
+        };
     }
 
     /**
@@ -115,7 +158,8 @@ export class YouTubeApiClient {
      * 動画詳細を取得
      */
     async getVideoDetails(videoId: string): Promise<YouTubeVideo | null> {
-        const url = `${this.baseUrl}/videos?part=snippet&id=${videoId}&key=${this.apiKey}`;
+        // liveStreamingDetails for concurrentViewers
+        const url = `${this.baseUrl}/videos?part=snippet,liveStreamingDetails&id=${videoId}&key=${this.apiKey}`;
 
         const response = await fetch(url);
 
@@ -142,6 +186,7 @@ export class YouTubeApiClient {
             channelTitle: item.snippet.channelTitle,
             thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url,
             publishedAt: item.snippet.publishedAt,
+            viewerCount: item.liveStreamingDetails?.concurrentViewers ? parseInt(item.liveStreamingDetails.concurrentViewers) : 0,
         };
     }
 }

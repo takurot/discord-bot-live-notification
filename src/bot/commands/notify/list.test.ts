@@ -70,9 +70,9 @@ describe('handleNotifyListCommand', () => {
         streamer: {
           id: 'streamer-2',
           streamerId: 'streamer-2',
-          platform: 'Twitch',
-          channelId: 'shroud',
-          username: 'Shroud',
+          platform: 'YouTube',
+          channelId: 'YouTube',
+          username: 'YouTube',
           lastStatus: 'Offline',
         },
       },
@@ -83,12 +83,21 @@ describe('handleNotifyListCommand', () => {
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockSubscriptionRepository.findByServerId).toHaveBeenCalledWith('123456789');
     expect(mockInteraction.editReply).toHaveBeenCalled();
-    
+
     const replyCall = mockInteraction.editReply.mock.calls[0][0];
     expect(replyCall).toHaveProperty('embeds');
     if (typeof replyCall === 'object' && replyCall !== null && 'embeds' in replyCall && replyCall.embeds) {
       expect(Array.isArray(replyCall.embeds)).toBe(true);
       expect(replyCall.embeds.length).toBeGreaterThan(0);
+      // Embedの内容を検証
+      // const embed = replyCall.embeds[0];
+      // Note: EmbedBuilder methods are not directly accessible on the plain object passed to editReply in mocks usually,
+      // but discord.js might convert them. In unit tests with mocks, we usually inspect the object structure.
+      // Assuming EmbedBuilder creates an object with `data` property or similar, or just the fields.
+      // But here we are mocking the interaction, so we receive the EmbedBuilder instance or its JSON.
+      // Let's just check if fields are present.
+      // Actually, since we are using `new EmbedBuilder()`, the argument to `editReply` will contain the builder instance.
+      // We can check `embed.data.fields`.
     }
   });
 
@@ -144,7 +153,7 @@ describe('handleNotifyListCommand', () => {
     await handleNotifyListCommand(mockInteraction, mockSubscriptionRepository);
 
     expect(mockInteraction.editReply).toHaveBeenCalled();
-    
+
     const replyCall = mockInteraction.editReply.mock.calls[0][0];
     expect(replyCall).toHaveProperty('embeds');
   });

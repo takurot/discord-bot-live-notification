@@ -59,7 +59,7 @@ export class TwitchPollingService {
       const streamerMap = new Map<string, Streamer>();
       for (const streamerId of uniqueStreamerIds) {
         const streamer = await this.streamerRepository.findByStreamerId(streamerId);
-        if (streamer) {
+        if (streamer && streamer.platform === 'Twitch') {
           streamerMap.set(streamerId, streamer);
         }
       }

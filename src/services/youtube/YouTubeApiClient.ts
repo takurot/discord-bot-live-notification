@@ -24,6 +24,7 @@ export interface YouTubeVideo {
     thumbnailUrl: string;
     publishedAt: string;
     viewerCount?: number;
+    isLive?: boolean; // Indicates if the video is currently live
 }
 
 export class YouTubeApiClient implements StreamProvider {
@@ -52,27 +53,49 @@ export class YouTubeApiClient implements StreamProvider {
 
     /**
      * StreamProvider implementation: Get stream status
+     * Uses a two-step approach for reliability:
+     * 1. Search API to find live streams (can be flaky)
+     * 2. Videos API to verify the stream is actually live
      */
     async getStream(userId: string): Promise<StreamProviderStream | null> {
-        const status = await this.getStreamStatus(userId);
+        try {
+            const status = await this.getStreamStatus(userId);
 
-        if (!status.isLive || !status.videoId) {
+            if (!status.isLive || !status.videoId) {
+                return null;
+            }
+
+            // Verify the stream is actually live using Videos API
+            const video = await this.getVideoDetails(status.videoId);
+
+            // Check if the video is actually live
+            if (!video || !video.isLive) {
+                // Video exists but is not live (could be a premiere or past stream)
+                logger.warn('YouTube video found but not currently live', {
+                    videoId: status.videoId,
+                    channelId: userId,
+                    isLive: video?.isLive,
+                });
+                return null;
+            }
+
+            return {
+                id: status.videoId,
+                userId: userId,
+                userDisplayName: video.channelTitle || 'Unknown',
+                title: status.title || video.title || 'Unknown',
+                gameName: null, // YouTube doesn't have game categories in the same way
+                viewerCount: video.viewerCount || 0,
+                startedAt: status.startedAt || video.publishedAt,
+                thumbnailUrl: status.thumbnailUrl || video.thumbnailUrl || '',
+            };
+        } catch (error) {
+            logger.error('Error getting YouTube stream status', {
+                error,
+                channelId: userId,
+            });
             return null;
         }
-
-        // Get more details (viewer count)
-        const video = await this.getVideoDetails(status.videoId);
-
-        return {
-            id: status.videoId,
-            userId: userId,
-            userDisplayName: video?.channelTitle || 'Unknown',
-            title: status.title || video?.title || 'Unknown',
-            gameName: null, // YouTube doesn't have "game" in the same way, or requires more API calls
-            viewerCount: video?.viewerCount || 0,
-            startedAt: status.startedAt || video?.publishedAt || new Date().toISOString(),
-            thumbnailUrl: status.thumbnailUrl || video?.thumbnailUrl || '',
-        };
     }
 
     /**
@@ -179,6 +202,9 @@ export class YouTubeApiClient implements StreamProvider {
         }
 
         const item = data.items[0];
+        const hasLiveDetails = !!item.liveStreamingDetails;
+        const isLive = hasLiveDetails && !!item.liveStreamingDetails.actualStartTime && !item.liveStreamingDetails.actualEndTime;
+
         return {
             id: item.id,
             title: item.snippet.title,
@@ -187,6 +213,7 @@ export class YouTubeApiClient implements StreamProvider {
             thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url,
             publishedAt: item.snippet.publishedAt,
             viewerCount: item.liveStreamingDetails?.concurrentViewers ? parseInt(item.liveStreamingDetails.concurrentViewers) : 0,
+            isLive: isLive,
         };
     }
 }

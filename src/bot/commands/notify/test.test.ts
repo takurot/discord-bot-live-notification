@@ -12,7 +12,8 @@ describe('handleNotifyTestCommand', () => {
         id: 'user-123',
         username: 'TestUser',
       },
-      reply: jest.fn(),
+      deferReply: jest.fn(),
+      editReply: jest.fn(),
     } as unknown as jest.Mocked<ChatInputCommandInteraction>;
   });
 
@@ -23,7 +24,8 @@ describe('handleNotifyTestCommand', () => {
   it('should send test notification with Twitch example', async () => {
     await handleNotifyTestCommand(mockInteraction);
 
-    expect(mockInteraction.reply).toHaveBeenCalledWith({
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.editReply).toHaveBeenCalledWith({
       content: '📬 テスト通知を送信します（配信開始の通知デザインプレビュー）',
       embeds: expect.arrayContaining([
         expect.objectContaining({
@@ -33,14 +35,13 @@ describe('handleNotifyTestCommand', () => {
           }),
         }),
       ]),
-      flags: 64, // MessageFlags.Ephemeral
     });
   });
 
   it('should include test data in notification', async () => {
     await handleNotifyTestCommand(mockInteraction);
 
-    const replyCall = mockInteraction.reply.mock.calls[0][0];
+    const replyCall = mockInteraction.editReply.mock.calls[0][0];
     expect(replyCall).toHaveProperty('embeds');
 
     if (
@@ -57,9 +58,6 @@ describe('handleNotifyTestCommand', () => {
   it('should use MessageFlags.Ephemeral', async () => {
     await handleNotifyTestCommand(mockInteraction);
 
-    const replyCall = mockInteraction.reply.mock.calls[0][0];
-    if (typeof replyCall === 'object' && replyCall !== null && 'flags' in replyCall) {
-      expect(replyCall.flags).toBe(64); // MessageFlags.Ephemeral
-    }
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
   });
 });

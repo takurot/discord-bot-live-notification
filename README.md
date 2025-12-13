@@ -80,9 +80,25 @@ npm start
 - `docker-compose.yml` は `3000:3000` を開放しているため、ローカルでは `http://localhost:3000/callback` を ngrok などで外部公開すれば受信できます。
 - 既存の YouTube 登録がハンドルで保存されている場合は、最新のマイグレーションを適用するとチャンネルIDへ補正されます。
 
-## コマンド
+## Botの使い方
 
-### 開発用コマンド
+1. Discord Developer Portal で Bot を有効化し、`DISCORD_BOT_TOKEN` / `DISCORD_CLIENT_ID` を `.env` もしくはクラウドの Secret に設定します。  
+   招待リンクは `applications.commands` + `bot` スコープで作成し、`Send Messages` / `Embed Links` 権限を付与してください。
+2. Bot を起動または Cloud Run にデプロイすると、スラッシュコマンドがグローバル登録されます（反映に数分かかる場合があります）。
+3. 通知はコマンドを実行したチャンネルに送られます。無料プランではサーバーあたり3枠まで登録できます（実装で強制）。
+
+### スラッシュコマンド
+- `/notify add url:<Twitch/YouTube URL>`: 配信者を監視リストに追加。Twitchは Client ID/Secret が必須、YouTubeは `YOUTUBE_API_KEY` が必須。`CALLBACK_URL` を設定すると YouTube の PubSubHubbub で即時性が向上。
+- `/notify remove url:<URL>`: 監視リストから削除（YouTubeはハンドル/チャンネルIDいずれも可）。
+- `/notify list`: 監視中の配信者一覧をEmbedで表示（サーバーごと、Free枠使用状況付き）。
+- `/notify test`: 通知デザインのプレビューをエフェメラルで表示。
+- `/status`: 稼働時間・接続サーバー数・登録件数などの統計を表示。
+- `/test-youtube url:<YouTube URL>`: 管理用のYouTube API動作確認コマンド（`YOUTUBE_API_KEY` が必要）。
+- 注: Twitch の Client ID/Secret が未設定の環境では `/notify add` 全体が無効になります（実装仕様）。YouTube 登録だけを行う場合でも設定してください。
+
+## 開発コマンド
+
+### npmスクリプト
 
 - `npm run dev` - 開発モードで起動（ホットリロード）
 - `npm run build` - TypeScriptをコンパイル
@@ -97,13 +113,8 @@ npm start
 - `npm run prisma:generate` - Prisma Clientを生成
 - `npm run prisma:migrate` - データベースマイグレーションを実行
 - `npm run prisma:studio` - Prisma Studioを起動
-# CI/CD
 
-- GitHub Actions（`.github/workflows/ci.yml`）で lint / typecheck / Jest（カバレッジ付き）を自動実行
-- テスト結果およびカバレッジは PR に自動コメントされ、`coverage/` ディレクトリはアーティファクトとして保存されます
-- ローカルで同等のチェックを行いたい場合は `npm run lint && npm run typecheck && npm run test:coverage -- --runInBand` を実行してください
-- 本番デプロイは Cloud Run (Google Cloud) を標準とし、`workflow_dispatch` / `main` ブランチへの push で `.github/workflows/deploy-cloud-run.yml` が実行されます（Workload Identity Federation 前提）。Railway/Render 設定は参考用に残しています。
-
+### Docker Compose 用コマンド
 - `npm run docker:dev` - Docker ComposeでBot + PostgreSQLを起動
 - `npm run docker:migrate` - コンテナ経由でマイグレーションを実行
 - `npm run docker:logs` - Dockerコンテナのログをフォロー
@@ -121,13 +132,27 @@ npm start
 5. 作業終了時  
    `npm run docker:down`
 
-## デプロイ
+## CI/CD
 
-- 本番デプロイ手順（Railway / Render）、必要な環境変数、ポストデプロイチェックは `DEPLOY.md` にまとめています。
-- テンプレート:
-  - `railway.json`: Railway CLI で `railway up` を実行する際の設定（Nixpacks + workerサービス）
-  - `render.yaml`: Render Blueprint（Node worker + PostgreSQL）
-- いずれも `npm run build` → `npm run start` を前提としています。ローカルでも同じ手順で確認してからデプロイすることを推奨します。
+- GitHub Actions（`.github/workflows/ci.yml`）で lint / typecheck / Jest（カバレッジ付き）を自動実行
+- テスト結果およびカバレッジは PR に自動コメントされ、`coverage/` ディレクトリはアーティファクトとして保存されます
+- ローカルで同等のチェックを行いたい場合は `npm run lint && npm run typecheck && npm run test:coverage -- --runInBand` を実行してください
+- 本番デプロイは Cloud Run (Google Cloud) を標準とし、`workflow_dispatch` / `main` ブランチへの push で `.github/workflows/deploy-cloud-run.yml` が実行されます（Workload Identity Federation 前提）。Railway/Render 設定は参考用に残しています。
+
+## クラウドデプロイ (Cloud Run)
+
+- 標準の本番環境は **Google Cloud Run + Cloud SQL + Secret Manager** です。CI から Cloud Build でイメージをビルドし、Cloud Run へデプロイします。
+- 必要なリソース/API: Artifact Registry, Cloud Run, Cloud Build, Secret Manager, Cloud SQL (PostgreSQL 15)。
+- Secret Manager に `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_ID`, `TWITCH_*`, `YOUTUBE_API_KEY`, `DATABASE_URL`, `CALLBACK_URL` などを保存し、`CLOUD_RUN_SECRET_MAPPINGS` で `KEY=projects/<PROJECT>/secrets/<NAME>:latest,...` 形式にまとめて GitHub Secrets に登録します。
+- GitHub Actions Secrets/Vaults:
+  - Secrets: `GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT`, `GCP_RUNTIME_SERVICE_ACCOUNT`(任意), `GCP_CLOUD_SQL_INSTANCE`(Cloud SQL を使う場合), `CLOUD_RUN_SECRET_MAPPINGS`
+  - Vars (任意): `GCP_REGION`（既定 `us-central1`）, `CLOUD_RUN_SERVICE`, `ARTIFACT_REPOSITORY`
+- デプロイ手順（概要）:
+  1. Cloud SQL を作成し、`DATABASE_URL` を Cloud SQL Unix ソケット形式で用意（例: `postgresql://<USER>:<PASS>@/<DB>?host=/cloudsql/<INSTANCE>&sslmode=disable`）。
+  2. 上記 Secrets/Vars を設定し、`main` へ push するか `workflow_dispatch` で `.github/workflows/deploy-cloud-run.yml` を実行。
+  3. 初回デプロイ後、Cloud Run の URL を `CALLBACK_URL` Secret に設定すると YouTube PubSubHubbub が有効になり、通知の即時性が上がります。
+- Cloud Run のリッスンポートは `3000` 固定、インスタンスは `min=0 / max=2`、CPU=1, MEM=512Mi に設定済みです。詳細な手順やトラブルシュートは `DEPLOY.md` を参照してください（gcloud 手動デプロイ例も記載）。
+- `railway.json` / `render.yaml` は参考テンプレートとして残していますが、運用は Cloud Run を前提としてください。
 
 ## プロジェクト構造
 

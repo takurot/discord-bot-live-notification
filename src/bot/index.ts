@@ -8,6 +8,8 @@ import { YouTubeApiClient } from '../services/youtube/YouTubeApiClient';
 import { TwitchPollingService } from '../services/polling/TwitchPollingService';
 import { YouTubePollingService } from '../services/polling/YouTubePollingService';
 import { NotificationService } from '../services/notification/NotificationService';
+import { PubSubHubbubService } from '../services/youtube/PubSubHubbubService';
+import { WebhookServer } from '../api/WebhookServer';
 import {
   ServerRepository,
   StreamerRepository,
@@ -84,6 +86,27 @@ if (youtubeApiClient) {
   );
 }
 
+// PubSubHubbub Service & Webhook Server
+const CALLBACK_URL = process.env.CALLBACK_URL;
+const PORT = parseInt(process.env.PORT || '3000', 10);
+
+let pubSubHubbubService: PubSubHubbubService | null = null;
+let webhookServer: WebhookServer | null = null;
+
+if (youtubeApiClient && CALLBACK_URL) {
+  pubSubHubbubService = new PubSubHubbubService(
+    youtubeApiClient,
+    streamerRepository,
+
+    eventEmitter,
+    CALLBACK_URL
+  );
+
+  webhookServer = new WebhookServer(pubSubHubbubService, PORT);
+} else if (!CALLBACK_URL) {
+  logger.warn('CALLBACK_URL not set. PubSubHubbub service will not be initialized.');
+}
+
 // ポーリング間隔（デフォルト: 5分）
 const POLLING_INTERVAL_MS = parseInt(process.env.POLLING_INTERVAL_MS || '300000', 10);
 
@@ -101,6 +124,7 @@ const commandRegister = new CommandRegister(botToken, clientId);
 const eventHandler = new EventHandler(client, {
   twitchApiClient,
   youtubeApiClient,
+  pubSubHubbubService,
   serverRepository,
   streamerRepository,
   subscriptionRepository,
@@ -113,6 +137,11 @@ client.once('clientReady', async () => {
 
   // コマンド登録
   await commandRegister.registerCommands();
+
+  // Webhookサーバーを開始
+  if (webhookServer) {
+    webhookServer.start();
+  }
 
   // ポーリングサービスを開始
   if (pollingService) {

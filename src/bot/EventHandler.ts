@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, Client, Interaction, MessageFlags } from '
 import { logger } from '../utils/logger';
 import { TwitchApiClient } from '../services/twitch/TwitchApiClient';
 import { YouTubeApiClient } from '../services/youtube/YouTubeApiClient';
+import { PubSubHubbubService } from '../services/youtube/PubSubHubbubService';
 import {
     ServerRepository,
     StreamerRepository,
@@ -21,6 +22,7 @@ export interface BotServices {
     serverRepository: ServerRepository;
     streamerRepository: StreamerRepository;
     subscriptionRepository: SubscriptionRepository;
+    pubSubHubbubService: PubSubHubbubService | null;
 }
 
 export class EventHandler {
@@ -85,6 +87,8 @@ export class EventHandler {
         const subcommand = interaction.options.getSubcommand(false);
         const {
             twitchApiClient,
+            youtubeApiClient,
+            pubSubHubbubService,
             serverRepository,
             streamerRepository,
             subscriptionRepository,
@@ -102,13 +106,20 @@ export class EventHandler {
             await handleNotifyAddCommand(
                 interaction,
                 twitchApiClient,
-                this.services.youtubeApiClient,
+                youtubeApiClient,
+                pubSubHubbubService,
                 serverRepository,
                 streamerRepository,
                 subscriptionRepository
             );
         } else if (subcommand === 'remove') {
-            await handleNotifyRemoveCommand(interaction, streamerRepository, subscriptionRepository);
+            await handleNotifyRemoveCommand(
+                interaction,
+                streamerRepository,
+                subscriptionRepository,
+                pubSubHubbubService,
+                youtubeApiClient
+            );
         } else if (subcommand === 'list') {
             await handleNotifyListCommand(interaction, subscriptionRepository);
         } else if (subcommand === 'test') {

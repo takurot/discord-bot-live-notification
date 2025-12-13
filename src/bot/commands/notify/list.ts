@@ -55,11 +55,9 @@ export async function handleNotifyListCommand(
       channelUrl = `https://www.twitch.tv/${sub.streamer.channelId}`;
     } else {
       // YouTube
-      if (sub.streamer.channelId.startsWith('@')) {
-        channelUrl = `https://www.youtube.com/${sub.streamer.channelId}`;
-      } else {
-        channelUrl = `https://www.youtube.com/channel/${sub.streamer.channelId}`;
-      }
+      channelUrl = sub.streamer.channelId.startsWith('@')
+        ? `https://www.youtube.com/${sub.streamer.channelId}`
+        : `https://www.youtube.com/channel/${sub.streamer.streamerId}`;
     }
 
     embed.addFields({

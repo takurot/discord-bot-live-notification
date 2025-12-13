@@ -258,7 +258,9 @@ export class NotificationService {
   private createStreamEndedEmbed(streamer: Streamer): EmbedBuilder {
     // プラットフォームに応じたURLを設定
     const platformUrl = streamer.platform === 'YouTube'
-      ? `https://www.youtube.com/${streamer.channelId}`
+      ? streamer.channelId.startsWith('@')
+        ? `https://www.youtube.com/${streamer.channelId}`
+        : `https://www.youtube.com/channel/${streamer.streamerId}`
       : `https://www.twitch.tv/${streamer.channelId}`;
 
     return new EmbedBuilder()

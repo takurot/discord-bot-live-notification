@@ -130,6 +130,7 @@ describe('handleNotifyAddCommand', () => {
       mockInteraction,
       mockTwitchApiClient,
       mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -147,7 +148,7 @@ describe('handleNotifyAddCommand', () => {
     // モックの設定
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.youtube.com/@YouTube');
     (detectPlatform as jest.Mock).mockReturnValue('YouTube');
-    (parseYoutubeUrl as jest.Mock).mockReturnValue('YouTube');
+    (parseYoutubeUrl as jest.Mock).mockReturnValue('@YouTube');
 
     mockServerRepository.findByServerId.mockResolvedValue({
       id: 'server-1',
@@ -171,7 +172,7 @@ describe('handleNotifyAddCommand', () => {
       id: 'streamer-2',
       streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
       platform: 'YouTube',
-      channelId: 'YouTube',
+      channelId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
       username: 'YouTube',
       lastStatus: 'Offline',
       createdAt: new Date(),
@@ -196,6 +197,7 @@ describe('handleNotifyAddCommand', () => {
       mockInteraction,
       mockTwitchApiClient,
       mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -205,8 +207,86 @@ describe('handleNotifyAddCommand', () => {
       content: '✅ YouTube配信者「YouTube」を監視リストに追加しました！',
       flags: 64, // MessageFlags.Ephemeral
     });
-    expect(mockStreamerRepository.create).toHaveBeenCalled();
+    expect(mockYouTubeApiClient.getUser).toHaveBeenCalledWith('@YouTube');
+    expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith(
+      'YouTube',
+      'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      {
+        streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+        additionalChannelIds: ['@YouTube'],
+      }
+    );
+    expect(mockStreamerRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channelId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      })
+    );
     expect(mockSubscriptionRepository.create).toHaveBeenCalled();
+  });
+
+  it('should reuse existing YouTube streamer stored with handle but subscribe using channel ID', async () => {
+    (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.youtube.com/@cnbc');
+    (detectPlatform as jest.Mock).mockReturnValue('YouTube');
+    (parseYoutubeUrl as jest.Mock).mockReturnValue('@cnbc');
+
+    mockServerRepository.findByServerId.mockResolvedValue({
+      id: 'server-1',
+      serverId: '123456789',
+      planType: 'Free',
+      joinedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockSubscriptionRepository.countByServerId.mockResolvedValue(1);
+    mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue({
+      id: 'streamer-legacy',
+      streamerId: 'UCvJJ_dzjViJCoLf5uKUTwoA',
+      platform: 'YouTube',
+      channelId: '@cnbc', // legacy data stored as handle
+      username: 'CNBC',
+      lastStatus: 'Offline',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+    mockYouTubeApiClient.getUser.mockResolvedValue({
+      id: 'UCvJJ_dzjViJCoLf5uKUTwoA',
+      name: 'CNBC',
+      displayName: 'CNBC',
+      url: 'https://www.youtube.com/channel/UCvJJ_dzjViJCoLf5uKUTwoA',
+      thumbnailUrl: 'http://example.com/image.jpg',
+    });
+    mockSubscriptionRepository.findByServerAndStreamer.mockResolvedValue(null);
+    mockSubscriptionRepository.create.mockResolvedValue({
+      id: 'sub-legacy',
+      serverId: '123456789',
+      streamerId: 'UCvJJ_dzjViJCoLf5uKUTwoA',
+      notificationChannelId: '987654321',
+      customMessage: null,
+      mentionRoleId: null,
+      embedColor: null,
+      embedFooter: null,
+      notificationMessageId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await handleNotifyAddCommand(
+      mockInteraction,
+      mockTwitchApiClient,
+      mockYouTubeApiClient,
+      null,
+      mockServerRepository,
+      mockStreamerRepository,
+      mockSubscriptionRepository
+    );
+
+    expect(mockStreamerRepository.create).not.toHaveBeenCalled();
+    expect(mockSubscriptionRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        streamerId: 'UCvJJ_dzjViJCoLf5uKUTwoA',
+        notificationChannelId: '987654321',
+      })
+    );
   });
 
   it('should create server if it does not exist', async () => {
@@ -262,6 +342,7 @@ describe('handleNotifyAddCommand', () => {
       mockInteraction,
       mockTwitchApiClient,
       mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -289,6 +370,7 @@ describe('handleNotifyAddCommand', () => {
       mockInteraction,
       mockTwitchApiClient,
       mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -324,6 +406,7 @@ describe('handleNotifyAddCommand', () => {
       mockInteraction,
       mockTwitchApiClient,
       mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -386,6 +469,7 @@ describe('handleNotifyAddCommand', () => {
       mockInteraction,
       mockTwitchApiClient,
       mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -406,6 +490,7 @@ describe('handleNotifyAddCommand', () => {
       mockInteraction,
       mockTwitchApiClient,
       mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -417,4 +502,3 @@ describe('handleNotifyAddCommand', () => {
     });
   });
 });
-

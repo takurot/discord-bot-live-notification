@@ -10,4 +10,5 @@ docker-compose.yml
 *.log
 tmp
 .DS_Store
+._*
 

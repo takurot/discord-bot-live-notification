@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction } from 'discord.js';
 import { handleNotifyRemoveCommand } from './remove';
 import { StreamerRepository } from '../../../models/repositories/StreamerRepository';
 import { SubscriptionRepository } from '../../../models/repositories/SubscriptionRepository';
+import { YouTubeApiClient } from '../../../services/youtube/YouTubeApiClient';
 
 // モックの設定
 jest.mock('../../../models/repositories/StreamerRepository');
@@ -18,6 +19,7 @@ describe('handleNotifyRemoveCommand', () => {
   let mockInteraction: jest.Mocked<ChatInputCommandInteraction>;
   let mockStreamerRepository: jest.Mocked<StreamerRepository>;
   let mockSubscriptionRepository: jest.Mocked<SubscriptionRepository>;
+  let mockYouTubeApiClient: jest.Mocked<YouTubeApiClient>;
 
   beforeEach(() => {
     // モックの初期化
@@ -39,6 +41,10 @@ describe('handleNotifyRemoveCommand', () => {
       findByServerAndStreamer: jest.fn(),
       delete: jest.fn(),
     } as unknown as jest.Mocked<SubscriptionRepository>;
+
+    mockYouTubeApiClient = {
+      getUser: jest.fn(),
+    } as unknown as jest.Mocked<YouTubeApiClient>;
 
     // モジュールのモックを設定
     (StreamerRepository as jest.MockedClass<typeof StreamerRepository>).mockImplementation(
@@ -99,11 +105,16 @@ describe('handleNotifyRemoveCommand', () => {
     await handleNotifyRemoveCommand(
       mockInteraction,
       mockStreamerRepository,
-      mockSubscriptionRepository
+      mockSubscriptionRepository,
+      null,
+      null
     );
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
-    expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith('Twitch', 'ninja');
+    expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith('Twitch', 'ninja', {
+      streamerId: undefined,
+      additionalChannelIds: [],
+    });
     expect(mockSubscriptionRepository.findByServerAndStreamer).toHaveBeenCalledWith(
       '123456789',
       '123456'
@@ -118,13 +129,21 @@ describe('handleNotifyRemoveCommand', () => {
     // モックの設定
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.youtube.com/@YouTube');
     (detectPlatform as jest.Mock).mockReturnValue('YouTube');
-    (parseYoutubeUrl as jest.Mock).mockReturnValue('YouTube');
+    (parseYoutubeUrl as jest.Mock).mockReturnValue('@YouTube');
+
+    mockYouTubeApiClient.getUser.mockResolvedValue({
+      id: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      name: '@YouTube',
+      displayName: 'YouTube',
+      url: 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      thumbnailUrl: 'http://example.com/image.jpg',
+    });
 
     mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue({
       id: 'streamer-2',
       streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
       platform: 'YouTube',
-      channelId: 'YouTube',
+      channelId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
       username: 'YouTube',
       lastStatus: 'Offline',
       createdAt: new Date(),
@@ -160,11 +179,21 @@ describe('handleNotifyRemoveCommand', () => {
     await handleNotifyRemoveCommand(
       mockInteraction,
       mockStreamerRepository,
-      mockSubscriptionRepository
+      mockSubscriptionRepository,
+      null,
+      mockYouTubeApiClient
     );
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
-    expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith('YouTube', 'YouTube');
+    expect(mockYouTubeApiClient.getUser).toHaveBeenCalledWith('@YouTube');
+    expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith(
+      'YouTube',
+      'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      {
+        streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+        additionalChannelIds: ['@YouTube'],
+      }
+    );
     expect(mockSubscriptionRepository.findByServerAndStreamer).toHaveBeenCalledWith(
       '123456789',
       'UC-lHJZR3Gqxm24_Vd_AJ5Yw'
@@ -173,6 +202,25 @@ describe('handleNotifyRemoveCommand', () => {
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
       content: '✅ YouTube配信者「YouTube」を監視リストから削除しました。',
     });
+  });
+
+  it('should reject removing YouTube handle when API client is unavailable', async () => {
+    (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.youtube.com/@YouTube');
+    (detectPlatform as jest.Mock).mockReturnValue('YouTube');
+    (parseYoutubeUrl as jest.Mock).mockReturnValue('@YouTube');
+
+    await handleNotifyRemoveCommand(
+      mockInteraction,
+      mockStreamerRepository,
+      mockSubscriptionRepository,
+      null,
+      null
+    );
+
+    expect(mockInteraction.editReply).toHaveBeenCalledWith({
+      content: '❌ YouTube連携が有効になっていません。',
+    });
+    expect(mockStreamerRepository.findByPlatformAndChannelId).not.toHaveBeenCalled();
   });
 
   it('should reject if streamer does not exist', async () => {
@@ -185,7 +233,9 @@ describe('handleNotifyRemoveCommand', () => {
     await handleNotifyRemoveCommand(
       mockInteraction,
       mockStreamerRepository,
-      mockSubscriptionRepository
+      mockSubscriptionRepository,
+      null,
+      null
     );
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
@@ -215,7 +265,9 @@ describe('handleNotifyRemoveCommand', () => {
     await handleNotifyRemoveCommand(
       mockInteraction,
       mockStreamerRepository,
-      mockSubscriptionRepository
+      mockSubscriptionRepository,
+      null,
+      null
     );
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
@@ -232,7 +284,9 @@ describe('handleNotifyRemoveCommand', () => {
     await handleNotifyRemoveCommand(
       mockInteraction,
       mockStreamerRepository,
-      mockSubscriptionRepository
+      mockSubscriptionRepository,
+      null,
+      null
     );
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
@@ -249,7 +303,9 @@ describe('handleNotifyRemoveCommand', () => {
     await handleNotifyRemoveCommand(
       mockInteraction,
       mockStreamerRepository,
-      mockSubscriptionRepository
+      mockSubscriptionRepository,
+      null,
+      null
     );
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });

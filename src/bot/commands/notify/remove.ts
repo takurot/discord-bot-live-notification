@@ -3,11 +3,16 @@ import { detectPlatform, parseTwitchUrl, parseYoutubeUrl } from '../../../utils/
 import { StreamerRepository } from '../../../models/repositories/StreamerRepository';
 import { SubscriptionRepository } from '../../../models/repositories/SubscriptionRepository';
 import { logger } from '../../../utils/logger';
+import { YouTubeApiClient } from '../../../services/youtube/YouTubeApiClient';
+
+import { PubSubHubbubService } from '../../../services/youtube/PubSubHubbubService';
 
 export async function handleNotifyRemoveCommand(
   interaction: ChatInputCommandInteraction,
   streamerRepository: StreamerRepository,
-  subscriptionRepository: SubscriptionRepository
+  subscriptionRepository: SubscriptionRepository,
+  pubSubHubbubService: PubSubHubbubService | null,
+  youtubeApiClient: YouTubeApiClient | null
 ): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -33,10 +38,15 @@ export async function handleNotifyRemoveCommand(
 
   // チャンネルID/ハンドル抽出
   let channelIdentifier: string | null = null;
+  let canonicalChannelId: string | null = null;
+
   if (platform === 'Twitch') {
     channelIdentifier = parseTwitchUrl(url);
   } else if (platform === 'YouTube') {
     channelIdentifier = parseYoutubeUrl(url);
+    if (channelIdentifier && channelIdentifier.startsWith('UC')) {
+      canonicalChannelId = channelIdentifier;
+    }
   }
 
   if (!channelIdentifier) {
@@ -46,8 +56,56 @@ export async function handleNotifyRemoveCommand(
     return;
   }
 
+  if (platform === 'YouTube') {
+    if (!youtubeApiClient) {
+      await interaction.editReply({
+        content: '❌ YouTube連携が有効になっていません。',
+      });
+      return;
+    }
+
+    if (!canonicalChannelId) {
+      try {
+        const user = await youtubeApiClient.getUser(channelIdentifier);
+        if (!user) {
+          await interaction.editReply({
+            content: `❌ YouTubeで「${channelIdentifier}」という配信者を見つけることができませんでした。URLを確認してください。`,
+          });
+          return;
+        }
+        canonicalChannelId = user.id;
+      } catch (error) {
+        logger.error('Failed to resolve YouTube channel identifier for removal', {
+          error,
+          channelIdentifier,
+        });
+        await interaction.editReply({
+          content: '❌ YouTubeチャンネル情報の取得に失敗しました。時間を置いて再度お試しください。',
+        });
+        return;
+      }
+    }
+  } else {
+    canonicalChannelId = channelIdentifier;
+  }
+
+  if (!canonicalChannelId) {
+    logger.error('Resolved channel ID is empty during notify remove', {
+      platform,
+      channelIdentifier,
+    });
+    await interaction.editReply({
+      content: '❌ 配信者情報の解決に失敗しました。URLをご確認のうえ再度お試しください。',
+    });
+    return;
+  }
+
   // Streamerの存在確認
-  const streamer = await streamerRepository.findByPlatformAndChannelId(platform, channelIdentifier);
+  const streamer = await streamerRepository.findByPlatformAndChannelId(platform, canonicalChannelId, {
+    streamerId: platform === 'YouTube' ? canonicalChannelId : undefined,
+    additionalChannelIds:
+      platform === 'YouTube' && channelIdentifier !== canonicalChannelId ? [channelIdentifier] : [],
+  });
   if (!streamer) {
     await interaction.editReply({
       content: `❌ ${platform}で「${channelIdentifier}」という配信者を見つけることができませんでした。URLを確認してください。`,
@@ -74,4 +132,17 @@ export async function handleNotifyRemoveCommand(
   await interaction.editReply({
     content: `✅ ${platform}配信者「${streamer.username}」を監視リストから削除しました。`,
   });
+
+  // PubSubHubbub購読解除 (YouTubeのみ)
+  // 他のサーバーでも登録されていないか確認してから解除する
+  if (platform === 'YouTube' && pubSubHubbubService) {
+    const remainingSubscriptions = await subscriptionRepository.countByStreamerId(streamer.streamerId);
+    if (remainingSubscriptions === 0) {
+      try {
+        await pubSubHubbubService.unsubscribe(streamer.streamerId);
+      } catch (error) {
+        console.error(`Failed to unsubscribe from PubSubHubbub for ${streamer.streamerId}:`, error);
+      }
+    }
+  }
 }

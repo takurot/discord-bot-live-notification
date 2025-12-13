@@ -71,7 +71,7 @@ describe('handleNotifyListCommand', () => {
           id: 'streamer-2',
           streamerId: 'streamer-2',
           platform: 'YouTube',
-          channelId: 'YouTube',
+          channelId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
           username: 'YouTube',
           lastStatus: 'Offline',
         },

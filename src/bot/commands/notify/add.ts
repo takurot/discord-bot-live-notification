@@ -7,12 +7,15 @@ import { StreamerRepository } from '../../../models/repositories/StreamerReposit
 import { SubscriptionRepository } from '../../../models/repositories/SubscriptionRepository';
 import { StreamProvider } from '../../../services/common/StreamProvider';
 
+import { PubSubHubbubService } from '../../../services/youtube/PubSubHubbubService';
+
 const FREE_PLAN_LIMIT = 3;
 
 export async function handleNotifyAddCommand(
   interaction: ChatInputCommandInteraction,
   twitchApiClient: TwitchApiClient | null,
   youtubeApiClient: YouTubeApiClient | null,
+  pubSubHubbubService: PubSubHubbubService | null,
   serverRepository: ServerRepository,
   streamerRepository: StreamerRepository,
   subscriptionRepository: SubscriptionRepository
@@ -105,9 +108,19 @@ export async function handleNotifyAddCommand(
   }
 
   const streamerId = user.id;
+  const canonicalChannelId = platform === 'YouTube' ? user.id : channelIdentifier;
+  const additionalChannelIds =
+    platform === 'YouTube' && channelIdentifier !== canonicalChannelId ? [channelIdentifier] : [];
 
   // Streamerの存在確認・作成
-  let streamer = await streamerRepository.findByPlatformAndChannelId(platform, channelIdentifier);
+  let streamer = await streamerRepository.findByPlatformAndChannelId(
+    platform,
+    canonicalChannelId,
+    {
+      streamerId: platform === 'YouTube' ? streamerId : undefined,
+      additionalChannelIds,
+    }
+  );
   // Note: For YouTube, channelIdentifier might be a handle, but we want to store the Channel ID if possible?
   // Actually, user.id from getUser is the Channel ID (for YouTube) or User ID (for Twitch).
   // But streamerRepository stores `channelId` which is used for display/lookup?
@@ -142,7 +155,7 @@ export async function handleNotifyAddCommand(
     streamer = await streamerRepository.create({
       streamerId: user.id,
       platform: platform,
-      channelId: user.name, // Store handle/username
+      channelId: canonicalChannelId,
       username: user.displayName,
     });
   }
@@ -166,6 +179,17 @@ export async function handleNotifyAddCommand(
     streamerId,
     notificationChannelId: channelId,
   });
+
+  // PubSubHubbub購読 (YouTubeのみ)
+  if (platform === 'YouTube' && pubSubHubbubService) {
+    try {
+      await pubSubHubbubService.subscribe(streamerId);
+    } catch (error) {
+      // 購読失敗してもDB登録は完了しているので、ログだけ出してユーザーには成功を返す（または警告）
+      // ここではログ出力にとどめる
+      console.error(`Failed to subscribe to PubSubHubbub for ${streamerId}:`, error);
+    }
+  }
 
   await interaction.reply({
     content: `✅ ${platform}配信者「${user.displayName}」を監視リストに追加しました！`,

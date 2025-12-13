@@ -143,6 +143,44 @@ describe('StreamerRepository', () => {
 
       expect(result).toBeNull();
     });
+
+    it('should search YouTube streamers by channelId, handle, or streamerId', async () => {
+      const mockStreamer = {
+        id: '1',
+        streamerId: 'UC1234567890123456789012',
+        platform: 'YouTube',
+        channelId: '@legacyHandle',
+        username: 'LegacyUser',
+        lastStatus: 'Offline',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (mockPrisma.streamer.findFirst as jest.Mock).mockResolvedValue(mockStreamer);
+
+      const result = await repository.findByPlatformAndChannelId(
+        'YouTube',
+        'UC1234567890123456789012',
+        {
+          streamerId: 'UC1234567890123456789012',
+          additionalChannelIds: ['@legacyHandle'],
+        }
+      );
+
+      expect(result).toEqual(mockStreamer);
+      expect(mockPrisma.streamer.findFirst).toHaveBeenCalledWith({
+        where: {
+          platform: 'YouTube',
+          OR: [
+            {
+              channelId: {
+                in: ['UC1234567890123456789012', '@legacyHandle'],
+              },
+            },
+            { streamerId: 'UC1234567890123456789012' },
+          ],
+        },
+      });
+    });
   });
 });
-

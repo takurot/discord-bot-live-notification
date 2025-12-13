@@ -1,12 +1,13 @@
 import { EventEmitter } from 'events';
-import { TwitchApiClient, TwitchStream } from '../twitch/TwitchApiClient';
+import { TwitchApiClient } from '../twitch/TwitchApiClient';
 import { SubscriptionRepository, StreamerRepository } from '../../models/repositories';
 import { Subscription, Streamer } from '@prisma/client';
 import { logger } from '../../utils/logger';
+import { StreamProviderStream } from '../common/StreamProvider';
 
 export interface StreamStartedEvent {
   streamer: Streamer;
-  streamData: TwitchStream;
+  streamData: StreamProviderStream;
   subscriptions: Subscription[];
 }
 
@@ -58,7 +59,7 @@ export class TwitchPollingService {
       const streamerMap = new Map<string, Streamer>();
       for (const streamerId of uniqueStreamerIds) {
         const streamer = await this.streamerRepository.findByStreamerId(streamerId);
-        if (streamer) {
+        if (streamer && streamer.platform === 'Twitch') {
           streamerMap.set(streamerId, streamer);
         }
       }
@@ -100,10 +101,21 @@ export class TwitchPollingService {
               (sub) => sub.streamerId === streamerId
             );
 
-            // イベント発行
+            // イベント発行（StreamProviderStream形式に変換）
+            const streamProviderData: StreamProviderStream = {
+              id: streamData.id,
+              userId: streamData.user_id,
+              userDisplayName: streamData.user_name,
+              title: streamData.title,
+              gameName: streamData.game_name,
+              viewerCount: streamData.viewer_count,
+              startedAt: streamData.started_at,
+              thumbnailUrl: streamData.thumbnail_url,
+            };
+
             this.eventEmitter.emit('streamStarted', {
               streamer: { ...streamer, lastStatus: 'Live' },
-              streamData,
+              streamData: streamProviderData,
               subscriptions: relevantSubscriptions,
             } as StreamStartedEvent);
           }

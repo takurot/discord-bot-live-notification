@@ -1,10 +1,12 @@
 import { logger } from '../../utils/logger';
 import { retryWithExponentialBackoff } from '../../utils/retry';
+import { StreamProvider, StreamProviderUser, StreamProviderStream } from '../common/StreamProvider';
 
 export interface TwitchUser {
   id: string;
   login: string;
   display_name: string;
+  profile_image_url: string;
 }
 
 export interface TwitchStreamStatus {
@@ -33,7 +35,7 @@ export interface TwitchStream {
   is_mature: boolean;
 }
 
-export class TwitchApiClient {
+export class TwitchApiClient implements StreamProvider {
   private clientId: string;
   private clientSecret: string;
   private accessToken: string | null = null;
@@ -86,7 +88,95 @@ export class TwitchApiClient {
   }
 
   /**
+   * StreamProvider implementation: Get user by ID or name
+   */
+  async getUser(idOrName: string): Promise<StreamProviderUser | null> {
+    // Twitch usernames are 4-25 characters, alphanumeric + underscores.
+    // IDs are numeric.
+    // However, to be safe, we can try both or rely on a heuristic.
+    // For now, let's assume if it's all digits, it's an ID, otherwise a username.
+    // But usernames can't start with a number? Actually they can't be all numbers?
+    // Twitch usernames must start with a letter. So if it starts with a digit, it's an ID.
+    // Wait, is that true? "Usernames must be between 4 and 25 characters."
+    // "Usernames may include alphanumeric characters and underscores."
+    // It doesn't explicitly say it must start with a letter, but usually they do.
+    // Let's try to query by login first, if fails or returns nothing, maybe try ID?
+    // Actually, the `helix/users` endpoint allows mixing `id` and `login`.
+
+    const isId = /^\d+$/.test(idOrName);
+    const paramName = isId ? 'id' : 'login';
+
+    const token = await this.getAccessToken();
+    const response = await fetch(`https://api.twitch.tv/helix/users?${paramName}=${idOrName}`, {
+      headers: {
+        'Client-ID': this.clientId,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      logger.error('Failed to get Twitch user', {
+        idOrName,
+        status: response.status,
+        statusText: response.statusText,
+      });
+      return null;
+    }
+
+    const data = (await response.json()) as { data: TwitchUser[] };
+
+    if (data.data.length === 0) {
+      return null;
+    }
+
+    const user = data.data[0];
+    return {
+      id: user.id,
+      name: user.login,
+      displayName: user.display_name,
+      url: `https://www.twitch.tv/${user.login}`,
+      thumbnailUrl: user.profile_image_url,
+    };
+  }
+
+  /**
+   * StreamProvider implementation: Get stream status
+   */
+  async getStream(userId: string): Promise<StreamProviderStream | null> {
+    const status = await this.getStreamStatus(userId);
+
+    if (!status.isLive) {
+      return null;
+    }
+
+    // We need a bit more info than getStreamStatus returns to fully populate StreamProviderStream
+    // But getStreamStatus calls the API which returns everything.
+    // Let's reuse the API call logic or call getStreamStatus and accept some missing fields if necessary?
+    // Actually, getStreamStatus returns a simplified object.
+    // I should probably refactor getStreamStatus to return the full object or just duplicate the logic/call `getStreams`.
+
+    // Let's use `getStreams` which returns the full object.
+    const streams = await this.getStreams([userId]);
+    if (streams.length === 0) {
+      return null;
+    }
+
+    const stream = streams[0];
+    return {
+      id: stream.id,
+      userId: stream.user_id,
+      userDisplayName: stream.user_name,
+      title: stream.title,
+      gameName: stream.game_name,
+      viewerCount: stream.viewer_count,
+      startedAt: stream.started_at,
+      thumbnailUrl: stream.thumbnail_url.replace('{width}', '1280').replace('{height}', '720'),
+    };
+  }
+
+  /**
    * ユーザー名からユーザー情報を取得
+   * @deprecated Use getUser instead
    */
   async getUserByUsername(username: string): Promise<TwitchUser | null> {
     const token = await this.getAccessToken();
@@ -151,39 +241,9 @@ export class TwitchApiClient {
    * 配信ステータスを取得
    */
   async getStreamStatus(userId: string): Promise<TwitchStreamStatus> {
-    const token = await this.getAccessToken();
+    const streams = await this.getStreams([userId]);
 
-    const response = await fetch(`https://api.twitch.tv/helix/streams?user_id=${userId}`, {
-      headers: {
-        'Client-ID': this.clientId,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      logger.error('Failed to get Twitch stream status', {
-        userId,
-        status: response.status,
-        statusText: response.statusText,
-      });
-      throw new Error(`Failed to get Twitch stream status: ${userId}`);
-    }
-
-    const data = (await response.json()) as {
-      data: Array<{
-        id: string;
-        user_id: string;
-        user_name: string;
-        game_id: string;
-        game_name: string;
-        title: string;
-        viewer_count: number;
-        started_at: string;
-        thumbnail_url: string;
-      }>;
-    };
-
-    if (data.data.length === 0) {
+    if (streams.length === 0) {
       return {
         isLive: false,
         title: null,
@@ -194,7 +254,7 @@ export class TwitchApiClient {
       };
     }
 
-    const stream = data.data[0];
+    const stream = streams[0];
     return {
       isLive: true,
       title: stream.title,

@@ -37,8 +37,43 @@ export class StreamerRepository {
 
   async findByPlatformAndChannelId(
     platform: 'Twitch' | 'YouTube',
-    channelId: string
+    channelId: string,
+    options?: {
+      streamerId?: string;
+      additionalChannelIds?: string[];
+    }
   ): Promise<Streamer | null> {
+    const candidateChannelIds = Array.from(
+      new Set(
+        [channelId, ...(options?.additionalChannelIds ?? [])].filter(
+          (value): value is string => Boolean(value)
+        )
+      )
+    );
+
+    if (platform === 'YouTube') {
+      const orConditions = [];
+
+      if (candidateChannelIds.length > 0) {
+        orConditions.push({
+          channelId: candidateChannelIds.length === 1
+            ? candidateChannelIds[0]
+            : { in: candidateChannelIds },
+        });
+      }
+
+      if (options?.streamerId) {
+        orConditions.push({ streamerId: options.streamerId });
+      }
+
+      return this.prisma.streamer.findFirst({
+        where: {
+          platform,
+          OR: orConditions.length > 0 ? orConditions : undefined,
+        },
+      });
+    }
+
     return this.prisma.streamer.findFirst({
       where: {
         platform,

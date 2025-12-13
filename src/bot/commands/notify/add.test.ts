@@ -1,19 +1,29 @@
 import { ChatInputCommandInteraction } from 'discord.js';
 import { handleNotifyAddCommand } from './add';
 import { TwitchApiClient } from '../../../services/twitch/TwitchApiClient';
+import { YouTubeApiClient } from '../../../services/youtube/YouTubeApiClient';
 import { ServerRepository } from '../../../models/repositories/ServerRepository';
 import { StreamerRepository } from '../../../models/repositories/StreamerRepository';
 import { SubscriptionRepository } from '../../../models/repositories/SubscriptionRepository';
 
 // モックの設定
 jest.mock('../../../services/twitch/TwitchApiClient');
+jest.mock('../../../services/youtube/YouTubeApiClient');
 jest.mock('../../../models/repositories/ServerRepository');
 jest.mock('../../../models/repositories/StreamerRepository');
 jest.mock('../../../models/repositories/SubscriptionRepository');
+jest.mock('../../../utils/urlParser', () => ({
+  detectPlatform: jest.fn(),
+  parseTwitchUrl: jest.fn(),
+  parseYoutubeUrl: jest.fn(),
+}));
+
+import { detectPlatform, parseTwitchUrl, parseYoutubeUrl } from '../../../utils/urlParser';
 
 describe('handleNotifyAddCommand', () => {
   let mockInteraction: jest.Mocked<ChatInputCommandInteraction>;
   let mockTwitchApiClient: jest.Mocked<TwitchApiClient>;
+  let mockYouTubeApiClient: jest.Mocked<YouTubeApiClient>;
   let mockServerRepository: jest.Mocked<ServerRepository>;
   let mockStreamerRepository: jest.Mocked<StreamerRepository>;
   let mockSubscriptionRepository: jest.Mocked<SubscriptionRepository>;
@@ -30,8 +40,12 @@ describe('handleNotifyAddCommand', () => {
     } as unknown as jest.Mocked<ChatInputCommandInteraction>;
 
     mockTwitchApiClient = {
-      getUsers: jest.fn(),
+      getUser: jest.fn(),
     } as unknown as jest.Mocked<TwitchApiClient>;
+
+    mockYouTubeApiClient = {
+      getUser: jest.fn(),
+    } as unknown as jest.Mocked<YouTubeApiClient>;
 
     mockServerRepository = {
       findByServerId: jest.fn(),
@@ -51,6 +65,7 @@ describe('handleNotifyAddCommand', () => {
 
     // モジュールのモックを設定
     (TwitchApiClient as jest.MockedClass<typeof TwitchApiClient>).mockImplementation(() => mockTwitchApiClient);
+    (YouTubeApiClient as jest.MockedClass<typeof YouTubeApiClient>).mockImplementation(() => mockYouTubeApiClient);
     (ServerRepository as jest.MockedClass<typeof ServerRepository>).mockImplementation(() => mockServerRepository);
     (StreamerRepository as jest.MockedClass<typeof StreamerRepository>).mockImplementation(() => mockStreamerRepository);
     (SubscriptionRepository as jest.MockedClass<typeof SubscriptionRepository>).mockImplementation(
@@ -65,6 +80,9 @@ describe('handleNotifyAddCommand', () => {
   it('should successfully add a new Twitch streamer', async () => {
     // モックの設定
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.twitch.tv/ninja');
+    (detectPlatform as jest.Mock).mockReturnValue('Twitch');
+    (parseTwitchUrl as jest.Mock).mockReturnValue('ninja');
+
     mockServerRepository.findByServerId.mockResolvedValue({
       id: 'server-1',
       serverId: '123456789',
@@ -75,13 +93,14 @@ describe('handleNotifyAddCommand', () => {
     });
     mockSubscriptionRepository.countByServerId.mockResolvedValue(2); // 2枠使用中
     mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue(null); // Streamer未存在
-    mockTwitchApiClient.getUsers.mockResolvedValue([
-      {
-        id: '123456',
-        login: 'ninja',
-        display_name: 'Ninja',
-      },
-    ]);
+    mockTwitchApiClient.getUser.mockResolvedValue({
+      id: '123456',
+      name: 'ninja',
+      displayName: 'Ninja',
+      url: 'https://www.twitch.tv/ninja',
+      thumbnailUrl: 'http://example.com/image.jpg',
+
+    });
     mockStreamerRepository.create.mockResolvedValue({
       id: 'streamer-1',
       streamerId: '123456',
@@ -110,21 +129,171 @@ describe('handleNotifyAddCommand', () => {
     await handleNotifyAddCommand(
       mockInteraction,
       mockTwitchApiClient,
+      mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
     );
 
-      expect(mockInteraction.reply).toHaveBeenCalledWith({
-        content: '✅ Twitch配信者「Ninja」を監視リストに追加しました！',
-        flags: 64, // MessageFlags.Ephemeral
-      });
+    expect(mockInteraction.reply).toHaveBeenCalledWith({
+      content: '✅ Twitch配信者「Ninja」を監視リストに追加しました！',
+      flags: 64, // MessageFlags.Ephemeral
+    });
     expect(mockStreamerRepository.create).toHaveBeenCalled();
     expect(mockSubscriptionRepository.create).toHaveBeenCalled();
   });
 
+  it('should successfully add a new YouTube streamer', async () => {
+    // モックの設定
+    (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.youtube.com/@YouTube');
+    (detectPlatform as jest.Mock).mockReturnValue('YouTube');
+    (parseYoutubeUrl as jest.Mock).mockReturnValue('@YouTube');
+
+    mockServerRepository.findByServerId.mockResolvedValue({
+      id: 'server-1',
+      serverId: '123456789',
+      planType: 'Free',
+      joinedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockSubscriptionRepository.countByServerId.mockResolvedValue(2);
+    mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue(null);
+    mockYouTubeApiClient.getUser.mockResolvedValue({
+      id: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      name: 'YouTube',
+      displayName: 'YouTube',
+      url: 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      thumbnailUrl: 'http://example.com/image.jpg',
+
+    });
+    mockStreamerRepository.create.mockResolvedValue({
+      id: 'streamer-2',
+      streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      platform: 'YouTube',
+      channelId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      username: 'YouTube',
+      lastStatus: 'Offline',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockSubscriptionRepository.findByServerAndStreamer.mockResolvedValue(null);
+    mockSubscriptionRepository.create.mockResolvedValue({
+      id: 'sub-2',
+      serverId: '123456789',
+      streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      notificationChannelId: '987654321',
+      customMessage: null,
+      mentionRoleId: null,
+      embedColor: null,
+      embedFooter: null,
+      notificationMessageId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await handleNotifyAddCommand(
+      mockInteraction,
+      mockTwitchApiClient,
+      mockYouTubeApiClient,
+      null,
+      mockServerRepository,
+      mockStreamerRepository,
+      mockSubscriptionRepository
+    );
+
+    expect(mockInteraction.reply).toHaveBeenCalledWith({
+      content: '✅ YouTube配信者「YouTube」を監視リストに追加しました！',
+      flags: 64, // MessageFlags.Ephemeral
+    });
+    expect(mockYouTubeApiClient.getUser).toHaveBeenCalledWith('@YouTube');
+    expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith(
+      'YouTube',
+      'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      {
+        streamerId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+        additionalChannelIds: ['@YouTube'],
+      }
+    );
+    expect(mockStreamerRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channelId: 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+      })
+    );
+    expect(mockSubscriptionRepository.create).toHaveBeenCalled();
+  });
+
+  it('should reuse existing YouTube streamer stored with handle but subscribe using channel ID', async () => {
+    (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.youtube.com/@cnbc');
+    (detectPlatform as jest.Mock).mockReturnValue('YouTube');
+    (parseYoutubeUrl as jest.Mock).mockReturnValue('@cnbc');
+
+    mockServerRepository.findByServerId.mockResolvedValue({
+      id: 'server-1',
+      serverId: '123456789',
+      planType: 'Free',
+      joinedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockSubscriptionRepository.countByServerId.mockResolvedValue(1);
+    mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue({
+      id: 'streamer-legacy',
+      streamerId: 'UCvJJ_dzjViJCoLf5uKUTwoA',
+      platform: 'YouTube',
+      channelId: '@cnbc', // legacy data stored as handle
+      username: 'CNBC',
+      lastStatus: 'Offline',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+    mockYouTubeApiClient.getUser.mockResolvedValue({
+      id: 'UCvJJ_dzjViJCoLf5uKUTwoA',
+      name: 'CNBC',
+      displayName: 'CNBC',
+      url: 'https://www.youtube.com/channel/UCvJJ_dzjViJCoLf5uKUTwoA',
+      thumbnailUrl: 'http://example.com/image.jpg',
+    });
+    mockSubscriptionRepository.findByServerAndStreamer.mockResolvedValue(null);
+    mockSubscriptionRepository.create.mockResolvedValue({
+      id: 'sub-legacy',
+      serverId: '123456789',
+      streamerId: 'UCvJJ_dzjViJCoLf5uKUTwoA',
+      notificationChannelId: '987654321',
+      customMessage: null,
+      mentionRoleId: null,
+      embedColor: null,
+      embedFooter: null,
+      notificationMessageId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await handleNotifyAddCommand(
+      mockInteraction,
+      mockTwitchApiClient,
+      mockYouTubeApiClient,
+      null,
+      mockServerRepository,
+      mockStreamerRepository,
+      mockSubscriptionRepository
+    );
+
+    expect(mockStreamerRepository.create).not.toHaveBeenCalled();
+    expect(mockSubscriptionRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        streamerId: 'UCvJJ_dzjViJCoLf5uKUTwoA',
+        notificationChannelId: '987654321',
+      })
+    );
+  });
+
   it('should create server if it does not exist', async () => {
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.twitch.tv/ninja');
+    (detectPlatform as jest.Mock).mockReturnValue('Twitch');
+    (parseTwitchUrl as jest.Mock).mockReturnValue('ninja');
+
     mockServerRepository.findByServerId.mockResolvedValue(null); // サーバー未存在
     mockServerRepository.create.mockResolvedValue({
       id: 'server-1',
@@ -136,13 +305,14 @@ describe('handleNotifyAddCommand', () => {
     });
     mockSubscriptionRepository.countByServerId.mockResolvedValue(0);
     mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue(null);
-    mockTwitchApiClient.getUsers.mockResolvedValue([
-      {
-        id: '123456',
-        login: 'ninja',
-        display_name: 'Ninja',
-      },
-    ]);
+    mockTwitchApiClient.getUser.mockResolvedValue({
+      id: '123456',
+      name: 'ninja',
+      displayName: 'Ninja',
+      url: 'https://www.twitch.tv/ninja',
+      thumbnailUrl: 'http://example.com/image.jpg',
+
+    });
     mockStreamerRepository.create.mockResolvedValue({
       id: 'streamer-1',
       streamerId: '123456',
@@ -171,6 +341,8 @@ describe('handleNotifyAddCommand', () => {
     await handleNotifyAddCommand(
       mockInteraction,
       mockTwitchApiClient,
+      mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -181,6 +353,9 @@ describe('handleNotifyAddCommand', () => {
 
   it('should reject if free plan limit (3) is reached', async () => {
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.twitch.tv/ninja');
+    (detectPlatform as jest.Mock).mockReturnValue('Twitch');
+    (parseTwitchUrl as jest.Mock).mockReturnValue('ninja');
+
     mockServerRepository.findByServerId.mockResolvedValue({
       id: 'server-1',
       serverId: '123456789',
@@ -194,6 +369,8 @@ describe('handleNotifyAddCommand', () => {
     await handleNotifyAddCommand(
       mockInteraction,
       mockTwitchApiClient,
+      mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -202,7 +379,7 @@ describe('handleNotifyAddCommand', () => {
     expect(mockInteraction.reply).toHaveBeenCalledWith({
       content:
         '❌ 無料プランでは最大3枠まで登録できます。4枠目以降を追加するには、Proプランへのアップグレードが必要です。',
-        flags: 64, // MessageFlags.Ephemeral
+      flags: 64, // MessageFlags.Ephemeral
     });
     expect(mockStreamerRepository.create).not.toHaveBeenCalled();
     expect(mockSubscriptionRepository.create).not.toHaveBeenCalled();
@@ -210,6 +387,9 @@ describe('handleNotifyAddCommand', () => {
 
   it('should reject if streamer does not exist on Twitch', async () => {
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.twitch.tv/invaliduser');
+    (detectPlatform as jest.Mock).mockReturnValue('Twitch');
+    (parseTwitchUrl as jest.Mock).mockReturnValue('invaliduser');
+
     mockServerRepository.findByServerId.mockResolvedValue({
       id: 'server-1',
       serverId: '123456789',
@@ -220,11 +400,13 @@ describe('handleNotifyAddCommand', () => {
     });
     mockSubscriptionRepository.countByServerId.mockResolvedValue(2);
     mockStreamerRepository.findByPlatformAndChannelId.mockResolvedValue(null);
-    mockTwitchApiClient.getUsers.mockResolvedValue([]); // ユーザーが見つからない
+    mockTwitchApiClient.getUser.mockResolvedValue(null); // ユーザーが見つからない
 
     await handleNotifyAddCommand(
       mockInteraction,
       mockTwitchApiClient,
+      mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -232,13 +414,16 @@ describe('handleNotifyAddCommand', () => {
 
     expect(mockInteraction.reply).toHaveBeenCalledWith({
       content: '❌ Twitchで「invaliduser」という配信者を見つけることができませんでした。URLを確認してください。',
-        flags: 64, // MessageFlags.Ephemeral
+      flags: 64, // MessageFlags.Ephemeral
     });
     expect(mockStreamerRepository.create).not.toHaveBeenCalled();
   });
 
   it('should reject if already subscribed', async () => {
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.twitch.tv/ninja');
+    (detectPlatform as jest.Mock).mockReturnValue('Twitch');
+    (parseTwitchUrl as jest.Mock).mockReturnValue('ninja');
+
     mockServerRepository.findByServerId.mockResolvedValue({
       id: 'server-1',
       serverId: '123456789',
@@ -258,13 +443,14 @@ describe('handleNotifyAddCommand', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    mockTwitchApiClient.getUsers.mockResolvedValue([
-      {
-        id: '123456',
-        login: 'ninja',
-        display_name: 'Ninja',
-      },
-    ]);
+    mockTwitchApiClient.getUser.mockResolvedValue({
+      id: '123456',
+      name: 'ninja',
+      displayName: 'Ninja',
+      url: 'https://www.twitch.tv/ninja',
+      thumbnailUrl: 'http://example.com/image.jpg',
+
+    });
     mockSubscriptionRepository.findByServerAndStreamer.mockResolvedValue({
       id: 'sub-1',
       serverId: '123456789',
@@ -282,6 +468,8 @@ describe('handleNotifyAddCommand', () => {
     await handleNotifyAddCommand(
       mockInteraction,
       mockTwitchApiClient,
+      mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
@@ -289,26 +477,28 @@ describe('handleNotifyAddCommand', () => {
 
     expect(mockInteraction.reply).toHaveBeenCalledWith({
       content: '❌ 「Ninja」は既に監視リストに登録されています。',
-        flags: 64, // MessageFlags.Ephemeral
+      flags: 64, // MessageFlags.Ephemeral
     });
     expect(mockSubscriptionRepository.create).not.toHaveBeenCalled();
   });
 
   it('should reject if invalid URL format', async () => {
     (mockInteraction.options.getString as jest.Mock).mockReturnValue('invalid-url');
+    (detectPlatform as jest.Mock).mockReturnValue(null);
 
     await handleNotifyAddCommand(
       mockInteraction,
       mockTwitchApiClient,
+      mockYouTubeApiClient,
+      null,
       mockServerRepository,
       mockStreamerRepository,
       mockSubscriptionRepository
     );
 
     expect(mockInteraction.reply).toHaveBeenCalledWith({
-      content: '❌ 無効なTwitch URLです。正しい形式のURLを入力してください。例: https://www.twitch.tv/channelname',
-        flags: 64, // MessageFlags.Ephemeral
+      content: '❌ 対応していないURLです。TwitchまたはYouTubeのチャンネルURLを入力してください。',
+      flags: 64, // MessageFlags.Ephemeral
     });
   });
 });
-

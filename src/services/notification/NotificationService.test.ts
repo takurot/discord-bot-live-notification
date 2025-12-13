@@ -3,7 +3,7 @@ import { Client, TextChannel, EmbedBuilder } from 'discord.js';
 import { SubscriptionRepository } from '../../models/repositories/SubscriptionRepository';
 import { EventEmitter } from 'events';
 import { Subscription, Streamer } from '@prisma/client';
-import { TwitchStream } from '../twitch/TwitchApiClient';
+import { StreamProviderStream } from '../common/StreamProvider';
 import { StreamEndedEvent, StreamStartedEvent } from '../polling/TwitchPollingService';
 
 // モックの設定
@@ -36,21 +36,15 @@ describe('NotificationService', () => {
     updatedAt: new Date(),
   };
 
-  const mockStreamData: TwitchStream = {
-    id: 'stream_id_1',
-    user_id: 'test_channel',
-    user_login: 'test_user',
-    user_name: 'TestUser',
-    game_id: 'game_id_1',
-    game_name: 'Test Game',
-    type: 'live',
-    title: 'Test Stream Title',
-    viewer_count: 100,
-    started_at: new Date().toISOString(),
-    language: 'en',
-    thumbnail_url: 'http://thumbnail.url/test-{width}x{height}.jpg',
-    tag_ids: [],
-    is_mature: false,
+  const mockStreamData: StreamProviderStream = {
+    id: 'stream123',
+    userId: 'user123',
+    userDisplayName: 'TestUser',
+    title: 'Test Stream',
+    gameName: 'Just Chatting',
+    viewerCount: 100,
+    startedAt: '2024-01-01T00:00:00Z',
+    thumbnailUrl: 'https://example.com/thumb.jpg',
   };
 
   const mockSubscription: Subscription = {
@@ -345,15 +339,15 @@ describe('NotificationService', () => {
     it('should create embed with correct stream information', () => {
       const embed = (notificationService as any).createStreamEmbed(mockStreamer, mockStreamData);
 
-      expect(embed.data.title).toBe('🔴 Test Stream Title');
-      expect(embed.data.url).toBe('https://www.twitch.tv/test_user'); // user_loginを使用
+      expect(embed.data.title).toBe('🔴 Test Stream');
+      expect(embed.data.url).toBe('https://www.twitch.tv/test_channel');
       expect(embed.data.color).toBe(0x9146ff); // Twitch purple
-      expect(embed.data.thumbnail?.url).toBe('http://thumbnail.url/test-320x180.jpg');
+      expect(embed.data.thumbnail?.url).toBe('https://example.com/thumb.jpg');
       expect(embed.data.fields).toHaveLength(3);
       expect(embed.data.fields?.[0].name).toBe('配信者');
       expect(embed.data.fields?.[0].value).toBe('TestUser');
       expect(embed.data.fields?.[1].name).toBe('カテゴリ');
-      expect(embed.data.fields?.[1].value).toBe('Test Game');
+      expect(embed.data.fields?.[1].value).toBe('Just Chatting');
       expect(embed.data.fields?.[2].name).toBe('視聴者数');
       expect(embed.data.fields?.[2].value).toBe('100人');
     });
@@ -361,7 +355,7 @@ describe('NotificationService', () => {
     it('should format large viewer count correctly', () => {
       const largeViewerStreamData = {
         ...mockStreamData,
-        viewer_count: 12345,
+        viewerCount: 12345,
       };
 
       const embed = (notificationService as any).createStreamEmbed(
@@ -375,7 +369,7 @@ describe('NotificationService', () => {
     it('should handle missing game name', () => {
       const noGameStreamData = {
         ...mockStreamData,
-        game_name: '',
+        gameName: null,
       };
 
       const embed = (notificationService as any).createStreamEmbed(mockStreamer, noGameStreamData);

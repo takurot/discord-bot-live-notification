@@ -20,7 +20,7 @@ export interface SubscriptionWithStreamer extends Subscription {
 }
 
 export class SubscriptionRepository {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: PrismaClient) { }
 
   async findByServerId(serverId: string): Promise<SubscriptionWithStreamer[]> {
     return this.prisma.subscription.findMany({
@@ -71,6 +71,14 @@ export class SubscriptionRepository {
   async countByServerId(serverId: string): Promise<number> {
     const subscriptions = await this.prisma.subscription.findMany({
       where: { serverId },
+      select: { id: true },
+    });
+    return subscriptions.length;
+  }
+
+  async countByStreamerId(streamerId: string): Promise<number> {
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: { streamerId },
       select: { id: true },
     });
     return subscriptions.length;

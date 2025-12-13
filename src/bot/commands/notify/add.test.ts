@@ -33,7 +33,8 @@ describe('handleNotifyAddCommand', () => {
     mockInteraction = {
       guildId: '123456789',
       channelId: '987654321',
-      reply: jest.fn(),
+      deferReply: jest.fn(),
+      editReply: jest.fn(),
       options: {
         getString: jest.fn(),
       },
@@ -143,10 +144,10 @@ describe('handleNotifyAddCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.reply).toHaveBeenCalledWith({
-      content: '✅ Twitch配信者「Ninja」を監視リストに追加しました！',
-      flags: 64, // MessageFlags.Ephemeral
-    });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.editReply).toHaveBeenCalledWith(
+      '✅ Twitch配信者「Ninja」を監視リストに追加しました！'
+    );
     expect(mockStreamerRepository.create).toHaveBeenCalled();
     expect(mockSubscriptionRepository.create).toHaveBeenCalled();
   });
@@ -211,10 +212,10 @@ describe('handleNotifyAddCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.reply).toHaveBeenCalledWith({
-      content: '✅ YouTube配信者「YouTube」を監視リストに追加しました！',
-      flags: 64, // MessageFlags.Ephemeral
-    });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.editReply).toHaveBeenCalledWith(
+      '✅ YouTube配信者「YouTube」を監視リストに追加しました！'
+    );
     expect(mockYouTubeApiClient.getUser).toHaveBeenCalledWith('@YouTube');
     expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith(
       'YouTube',
@@ -385,11 +386,10 @@ describe('handleNotifyAddCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.reply).toHaveBeenCalledWith({
-      content:
-        '❌ 無料プランでは最大3枠まで登録できます。4枠目以降を追加するには、Proプランへのアップグレードが必要です。',
-      flags: 64, // MessageFlags.Ephemeral
-    });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.editReply).toHaveBeenCalledWith(
+      '❌ 無料プランでは最大3枠まで登録できます。4枠目以降を追加するには、Proプランへのアップグレードが必要です。'
+    );
     expect(mockStreamerRepository.create).not.toHaveBeenCalled();
     expect(mockSubscriptionRepository.create).not.toHaveBeenCalled();
   });
@@ -423,11 +423,10 @@ describe('handleNotifyAddCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.reply).toHaveBeenCalledWith({
-      content:
-        '❌ Twitchで「invaliduser」という配信者を見つけることができませんでした。URLを確認してください。',
-      flags: 64, // MessageFlags.Ephemeral
-    });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.editReply).toHaveBeenCalledWith(
+      '❌ Twitchで「invaliduser」という配信者を見つけることができませんでした。URLを確認してください。'
+    );
     expect(mockStreamerRepository.create).not.toHaveBeenCalled();
   });
 
@@ -486,10 +485,8 @@ describe('handleNotifyAddCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.reply).toHaveBeenCalledWith({
-      content: '❌ 「Ninja」は既に監視リストに登録されています。',
-      flags: 64, // MessageFlags.Ephemeral
-    });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.editReply).toHaveBeenCalledWith('❌ 「Ninja」は既に監視リストに登録されています。');
     expect(mockSubscriptionRepository.create).not.toHaveBeenCalled();
   });
 
@@ -507,9 +504,9 @@ describe('handleNotifyAddCommand', () => {
       mockSubscriptionRepository
     );
 
-    expect(mockInteraction.reply).toHaveBeenCalledWith({
-      content: '❌ 対応していないURLです。TwitchまたはYouTubeのチャンネルURLを入力してください。',
-      flags: 64, // MessageFlags.Ephemeral
-    });
+    expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(mockInteraction.editReply).toHaveBeenCalledWith(
+      '❌ 対応していないURLです。TwitchまたはYouTubeのチャンネルURLを入力してください。'
+    );
   });
 });

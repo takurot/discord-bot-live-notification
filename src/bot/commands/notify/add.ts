@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction } from 'discord.js';
 import { detectPlatform, parseTwitchUrl, parseYoutubeUrl } from '../../../utils/urlParser';
 import { TwitchApiClient } from '../../../services/twitch/TwitchApiClient';
 import { YouTubeApiClient } from '../../../services/youtube/YouTubeApiClient';
@@ -20,15 +20,15 @@ export async function handleNotifyAddCommand(
   streamerRepository: StreamerRepository,
   subscriptionRepository: SubscriptionRepository
 ): Promise<void> {
+  await interaction.deferReply({ ephemeral: true });
   const url = interaction.options.getString('url', true);
 
   // プラットフォーム判定
   const platform = detectPlatform(url);
   if (!platform) {
-    await interaction.reply({
-      content: '❌ 対応していないURLです。TwitchまたはYouTubeのチャンネルURLを入力してください。',
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply(
+      '❌ 対応していないURLです。TwitchまたはYouTubeのチャンネルURLを入力してください。'
+    );
     return;
   }
 
@@ -38,20 +38,14 @@ export async function handleNotifyAddCommand(
 
   if (platform === 'Twitch') {
     if (!twitchApiClient) {
-      await interaction.reply({
-        content: '❌ Twitch連携が有効になっていません。',
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.editReply('❌ Twitch連携が有効になっていません。');
       return;
     }
     channelIdentifier = parseTwitchUrl(url);
     provider = twitchApiClient;
   } else if (platform === 'YouTube') {
     if (!youtubeApiClient) {
-      await interaction.reply({
-        content: '❌ YouTube連携が有効になっていません。',
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.editReply('❌ YouTube連携が有効になっていません。');
       return;
     }
     channelIdentifier = parseYoutubeUrl(url);
@@ -59,10 +53,9 @@ export async function handleNotifyAddCommand(
   }
 
   if (!channelIdentifier) {
-    await interaction.reply({
-      content: `❌ 無効な${platform} URLです。正しい形式のURLを入力してください。`,
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply(
+      `❌ 無効な${platform} URLです。正しい形式のURLを入力してください。`
+    );
     return;
   }
 
@@ -71,10 +64,7 @@ export async function handleNotifyAddCommand(
   const channelId = interaction.channelId;
 
   if (!serverId || !channelId) {
-    await interaction.reply({
-      content: '❌ サーバーまたはチャンネル情報を取得できませんでした。',
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply('❌ サーバーまたはチャンネル情報を取得できませんでした。');
     return;
   }
 
@@ -88,11 +78,9 @@ export async function handleNotifyAddCommand(
   if (server.planType === 'Free') {
     const subscriptionCount = await subscriptionRepository.countByServerId(serverId);
     if (subscriptionCount >= FREE_PLAN_LIMIT) {
-      await interaction.reply({
-        content:
-          '❌ 無料プランでは最大3枠まで登録できます。4枠目以降を追加するには、Proプランへのアップグレードが必要です。',
-        flags: MessageFlags.Ephemeral,
-      });
+      await interaction.editReply(
+        '❌ 無料プランでは最大3枠まで登録できます。4枠目以降を追加するには、Proプランへのアップグレードが必要です。'
+      );
       return;
     }
   }
@@ -100,10 +88,9 @@ export async function handleNotifyAddCommand(
   // APIでユーザー情報取得
   const user = await provider!.getUser(channelIdentifier);
   if (!user) {
-    await interaction.reply({
-      content: `❌ ${platform}で「${channelIdentifier}」という配信者を見つけることができませんでした。URLを確認してください。`,
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply(
+      `❌ ${platform}で「${channelIdentifier}」という配信者を見つけることができませんでした。URLを確認してください。`
+    );
     return;
   }
 
@@ -162,10 +149,7 @@ export async function handleNotifyAddCommand(
     streamerId
   );
   if (existingSubscription) {
-    await interaction.reply({
-      content: `❌ 「${user.displayName}」は既に監視リストに登録されています。`,
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply(`❌ 「${user.displayName}」は既に監視リストに登録されています。`);
     return;
   }
 
@@ -187,8 +171,7 @@ export async function handleNotifyAddCommand(
     }
   }
 
-  await interaction.reply({
-    content: `✅ ${platform}配信者「${user.displayName}」を監視リストに追加しました！`,
-    flags: MessageFlags.Ephemeral,
-  });
+  await interaction.editReply(
+    `✅ ${platform}配信者「${user.displayName}」を監視リストに追加しました！`
+  );
 }

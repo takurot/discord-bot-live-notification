@@ -16,6 +16,7 @@ describe('WebhookServer', () => {
             {} as any,
             {} as any,
             {} as any,
+            {} as any,
             'http://localhost:3000/callback'
         ) as jest.Mocked<PubSubHubbubService>;
 

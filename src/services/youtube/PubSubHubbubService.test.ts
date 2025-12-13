@@ -1,6 +1,7 @@
 import { PubSubHubbubService } from './PubSubHubbubService';
 import { YouTubeApiClient } from './YouTubeApiClient';
 import { StreamerRepository } from '../../models/repositories/StreamerRepository';
+import { SubscriptionRepository } from '../../models/repositories/SubscriptionRepository';
 
 import { EventEmitter } from 'events';
 import { Request, Response } from 'express';
@@ -8,6 +9,7 @@ import { Request, Response } from 'express';
 // Mock dependencies
 jest.mock('./YouTubeApiClient');
 jest.mock('../../models/repositories/StreamerRepository');
+jest.mock('../../models/repositories/SubscriptionRepository');
 
 jest.mock('../../utils/logger');
 
@@ -15,6 +17,7 @@ describe('PubSubHubbubService', () => {
     let service: PubSubHubbubService;
     let mockYouTubeApiClient: jest.Mocked<YouTubeApiClient>;
     let mockStreamerRepository: jest.Mocked<StreamerRepository>;
+    let mockSubscriptionRepository: jest.Mocked<SubscriptionRepository>;
 
     let mockEventEmitter: EventEmitter;
     const callbackUrl = 'http://localhost:3000/callback';
@@ -22,6 +25,7 @@ describe('PubSubHubbubService', () => {
     beforeEach(() => {
         mockYouTubeApiClient = new YouTubeApiClient('api-key') as jest.Mocked<YouTubeApiClient>;
         mockStreamerRepository = new StreamerRepository({} as any) as jest.Mocked<StreamerRepository>;
+        mockSubscriptionRepository = new SubscriptionRepository({} as any) as jest.Mocked<SubscriptionRepository>;
 
         mockEventEmitter = new EventEmitter();
         jest.spyOn(mockEventEmitter, 'emit');
@@ -29,6 +33,7 @@ describe('PubSubHubbubService', () => {
         service = new PubSubHubbubService(
             mockYouTubeApiClient,
             mockStreamerRepository,
+            mockSubscriptionRepository,
 
             mockEventEmitter,
             callbackUrl
@@ -174,12 +179,36 @@ describe('PubSubHubbubService', () => {
                 username: 'Streamer Name',
                 lastStatus: 'Offline',
             } as any);
+            mockSubscriptionRepository.findByStreamerId.mockResolvedValue([
+                {
+                    id: 'sub-1',
+                    serverId: 'server-1',
+                    streamerId: 'channel-id',
+                    notificationChannelId: 'channel-1',
+                    customMessage: null,
+                    mentionRoleId: null,
+                    embedColor: null,
+                    embedFooter: null,
+                    notificationMessageId: null,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                } as any,
+            ]);
 
             await service.handleNotification(req as Request, res as Response);
 
             expect(mockYouTubeApiClient.getStream).toHaveBeenCalledWith('channel-id');
             expect(mockStreamerRepository.updateStatus).toHaveBeenCalledWith('channel-id', 'Live');
-            expect(mockEventEmitter.emit).toHaveBeenCalledWith('streamStarted', expect.anything());
+            expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+                'streamStarted',
+                expect.objectContaining({
+                    streamer: expect.objectContaining({ streamerId: 'channel-id', lastStatus: 'Live' }),
+                    streamData: expect.objectContaining({ id: 'video-id' }),
+                    subscriptions: expect.arrayContaining([
+                        expect.objectContaining({ streamerId: 'channel-id' }),
+                    ]),
+                })
+            );
         });
 
         it('should verify live status and emit streamEnded event if offline', async () => {
@@ -201,11 +230,34 @@ describe('PubSubHubbubService', () => {
                 username: 'Streamer Name',
                 lastStatus: 'Live',
             } as any);
+            mockSubscriptionRepository.findByStreamerId.mockResolvedValue([
+                {
+                    id: 'sub-1',
+                    serverId: 'server-1',
+                    streamerId: 'channel-id',
+                    notificationChannelId: 'channel-1',
+                    customMessage: null,
+                    mentionRoleId: null,
+                    embedColor: null,
+                    embedFooter: null,
+                    notificationMessageId: null,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                } as any,
+            ]);
 
             await service.handleNotification(req as Request, res as Response);
 
             expect(mockStreamerRepository.updateStatus).toHaveBeenCalledWith('channel-id', 'Offline');
-            expect(mockEventEmitter.emit).toHaveBeenCalledWith('streamEnded', expect.anything());
+            expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+                'streamEnded',
+                expect.objectContaining({
+                    streamer: expect.objectContaining({ streamerId: 'channel-id', lastStatus: 'Offline' }),
+                    subscriptions: expect.arrayContaining([
+                        expect.objectContaining({ streamerId: 'channel-id' }),
+                    ]),
+                })
+            );
         });
 
         it('should ignore if already live', async () => {

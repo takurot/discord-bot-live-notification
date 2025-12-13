@@ -8,18 +8,12 @@ StreamPulseは、TwitchおよびYouTubeのライブ配信開始を検知し、Di
 
 ## 機能
 
-### Phase 1 (MVP)
-- Twitch配信検知・通知機能（Freeプラン・ポーリング方式）
+- Twitch / YouTube の配信検知と自動通知  
+  - Twitch: ポーリング方式（既定 5 分間隔）
+  - YouTube: ポーリング + PubSubHubbub webhook（`CALLBACK_URL` 設定時は即時性アップ）
 - 基本コマンド（`/notify add/remove/list/test`, `/status`, `/ping`）
-
-### Phase 2 (予定)
-- YouTube配信検知・通知機能
-- Proプラン機能（メンション、カスタマイズ、Webhook方式）
-
-### Phase 3 (予定)
-- Stripe決済機能
-- Webダッシュボード
-- 監視・メトリクス収集
+- 無料プラン上限: 1 サーバーあたり 3 枠（内部ロジックに実装済み）
+- Pro 向け機能（メンション／カスタマイズ／決済など）はこれから実装
 
 ## セットアップ
 
@@ -74,9 +68,17 @@ npm start
 | `DATABASE_URL` | PostgreSQL接続URL | ✅ |
 | `TWITCH_CLIENT_ID` | Twitch API Client ID | ✅ |
 | `TWITCH_CLIENT_SECRET` | Twitch API Client Secret | ✅ |
+| `YOUTUBE_API_KEY` | YouTube Data API v3 のキー | ✅ (YouTube機能を使う場合) |
+| `CALLBACK_URL` | PubSubHubbub用の公開URL（例: `https://xxx.ngrok-free.app/callback`） | ✅ (Webhookを使う場合) |
+| `PORT` | Webhookサーバーの待受ポート（既定: `3000`） | ❌ |
 | `NODE_ENV` | 実行環境（development/production） | ❌ |
 | `LOG_LEVEL` | ログレベル（debug/info/warn/error） | ❌ |
 | `POLLING_INTERVAL_MS` | Twitchポーリング間隔（ミリ秒 / 既定: 300000） | ❌ |
+
+### YouTube PubSubHubbub を使う場合の注意
+- `CALLBACK_URL` をインターネット公開されたURLに設定してください（ngrok やリバースプロキシで `/callback` までルーティングする）。
+- `docker-compose.yml` は `3000:3000` を開放しているため、ローカルでは `http://localhost:3000/callback` を ngrok などで外部公開すれば受信できます。
+- 既存の YouTube 登録がハンドルで保存されている場合は、最新のマイグレーションを適用するとチャンネルIDへ補正されます。
 
 ## コマンド
 
@@ -135,7 +137,7 @@ src/
 │   └── commands/     # スラッシュコマンド
 ├── services/         # 外部API連携
 │   ├── twitch/       # Twitch API
-│   └── youtube/      # YouTube API (Phase 2)
+│   └── youtube/      # YouTube API / PubSubHubbub
 ├── models/           # データアクセス層
 │   └── repositories/ # Repositoryパターン
 ├── utils/            # ユーティリティ
@@ -166,4 +168,3 @@ MIT
 
 - [仕様書](./prompt/SPEC.md)
 - [実装計画](./prompt/PLAN.md)
-

@@ -97,6 +97,7 @@ if (youtubeApiClient && CALLBACK_URL) {
   pubSubHubbubService = new PubSubHubbubService(
     youtubeApiClient,
     streamerRepository,
+    subscriptionRepository,
 
     eventEmitter,
     CALLBACK_URL

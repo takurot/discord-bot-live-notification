@@ -9,7 +9,7 @@
 
 | Phase | 状態 | 完了タスク | 総タスク数 | 進捗率 |
 |-------|------|------------|------------|---------|
-| **Phase 1 (MVP)** | 🔄 進行中 | 17 | 19 | 89% |
+| **Phase 1 (MVP)** | 🔄 進行中 | 19 | 20 | 95% |
 | **Phase 2 (機能拡張)** | 🔄 進行中 | 1 | 9 | 11% |
 | **Phase 3 (運用強化)** | ⏸️ 未開始 | 0 | 4 | 0% |
 
@@ -479,6 +479,20 @@
   - `tests/e2e/mvp-comprehensive.e2e.test.ts` にてMVP全機能（配信開始〜通知〜終了更新）の自動テストを実装・パス
   - Jest設定の調整（`._` ファイル除外）によりテスト安定化
   - 手動確認は実装プロセス中で実施済み
+
+#### **⏳ P1-T20: Google Cloud 移行（Railway代替）**
+- **説明:** 無償枠終了に伴い、本番／ステージングを Google Cloud に移設
+- **内容:**
+  - Cloud Run へ Bot コンテナをデプロイ（常時起動設定、Webhook受信ポート公開）
+  - Cloud SQL for PostgreSQL に DB を移行し、`DATABASE_URL` を更新
+  - Secret Manager に Discord/Twitch/YouTube の各トークン・APIキーを格納し Cloud Run に注入
+  - GitHub Actions に Cloud Run デプロイステップを追加（認証: Workload Identity Federation または Service Account JSON）
+  - PubSubHubbub/ウェブフック用URLを Cloud Run エンドポイントへ変更し、疎通確認
+  - **コスト抑制オプション:** Compute Engine `e2-micro` 1台に Bot + PostgreSQL を同居させるパスも検討（自前で永続ディスク/バックアップ/セキュリティパッチ管理が必要）
+  - **コスト抑制（採用方針）:** Cloud Run `min-instances: 0` でスケールゼロを許容し、Cloud Scheduler → HTTPS 呼び出しで定期ウォームアップ。リージョンは最安帯（例: us-central1）で統一。DBは Cloud SQL 最小構成を継続利用し運用手間を最小化。
+- **依存:** P1-T17（デプロイ設定）、P1-T18（E2Eテスト）
+- **並列可能:** Phase 2 初期タスクと並行可能 ✅
+- **テスト:** `npm run lint`, `npm run typecheck`, `npm test`, E2E疎通（PubSubHubbub/Discord通知）
 
 ---
 

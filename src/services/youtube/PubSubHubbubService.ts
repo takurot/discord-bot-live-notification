@@ -3,6 +3,7 @@ import { parseStringPromise } from 'xml2js';
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
 import { StreamerRepository } from '../../models/repositories/StreamerRepository';
+import { SubscriptionRepository } from '../../models/repositories/SubscriptionRepository';
 
 import { YouTubeApiClient } from './YouTubeApiClient';
 
@@ -13,6 +14,7 @@ const TOPIC_BASE_URL = 'https://www.youtube.com/xml/feeds/videos.xml?channel_id=
 export class PubSubHubbubService {
     private youtubeApiClient: YouTubeApiClient;
     private streamerRepository: StreamerRepository;
+    private subscriptionRepository: SubscriptionRepository;
 
     private eventEmitter: EventEmitter;
     private callbackUrl: string;
@@ -21,6 +23,7 @@ export class PubSubHubbubService {
     constructor(
         youtubeApiClient: YouTubeApiClient,
         streamerRepository: StreamerRepository,
+        subscriptionRepository: SubscriptionRepository,
 
         eventEmitter: EventEmitter,
         callbackUrl: string,
@@ -28,6 +31,7 @@ export class PubSubHubbubService {
     ) {
         this.youtubeApiClient = youtubeApiClient;
         this.streamerRepository = streamerRepository;
+        this.subscriptionRepository = subscriptionRepository;
 
         this.eventEmitter = eventEmitter;
         this.callbackUrl = callbackUrl;
@@ -171,14 +175,14 @@ export class PubSubHubbubService {
                             logger.info(`PubSubHubbub detected stream start: ${streamer.username}`);
                             await this.streamerRepository.updateStatus(streamer.streamerId, 'Live');
 
+                            const subscriptions = await this.subscriptionRepository.findByStreamerId(
+                                streamer.streamerId
+                            );
+
                             this.eventEmitter.emit('streamStarted', {
-                                streamerId: streamer.streamerId,
-                                platform: 'YouTube',
-                                streamerName: streamer.username,
-                                streamTitle: stream.title,
-                                thumbnailUrl: stream.thumbnailUrl,
-                                viewerCount: stream.viewerCount,
-                                startedAt: stream.startedAt,
+                                streamer: { ...streamer, lastStatus: 'Live' },
+                                streamData: stream,
+                                subscriptions,
                             });
                         } else {
                             logger.info(`Streamer ${streamer.username} is already marked as Live. Skipping notification.`);
@@ -195,10 +199,13 @@ export class PubSubHubbubService {
                             logger.info(`PubSubHubbub detected stream end: ${streamer.username}`);
                             await this.streamerRepository.updateStatus(streamer.streamerId, 'Offline');
 
+                            const subscriptions = await this.subscriptionRepository.findByStreamerId(
+                                streamer.streamerId
+                            );
+
                             this.eventEmitter.emit('streamEnded', {
-                                streamerId: streamer.streamerId,
-                                platform: 'YouTube',
-                                streamerName: streamer.username,
+                                streamer: { ...streamer, lastStatus: 'Offline' },
+                                subscriptions,
                             });
                         }
                     }

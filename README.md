@@ -102,6 +102,7 @@ npm start
 - GitHub Actions（`.github/workflows/ci.yml`）で lint / typecheck / Jest（カバレッジ付き）を自動実行
 - テスト結果およびカバレッジは PR に自動コメントされ、`coverage/` ディレクトリはアーティファクトとして保存されます
 - ローカルで同等のチェックを行いたい場合は `npm run lint && npm run typecheck && npm run test:coverage -- --runInBand` を実行してください
+- 本番デプロイは Cloud Run (Google Cloud) を標準とし、`workflow_dispatch` / `main` ブランチへの push で `.github/workflows/deploy-cloud-run.yml` が実行されます（Workload Identity Federation 前提）。Railway/Render 設定は参考用に残しています。
 
 - `npm run docker:dev` - Docker ComposeでBot + PostgreSQLを起動
 - `npm run docker:migrate` - コンテナ経由でマイグレーションを実行

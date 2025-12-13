@@ -9,7 +9,7 @@
 
 | Phase | 状態 | 完了タスク | 総タスク数 | 進捗率 |
 |-------|------|------------|------------|---------|
-| **Phase 1 (MVP)** | 🔄 進行中 | 19 | 20 | 95% |
+| **Phase 1 (MVP)** | ✅ 完了 | 20 | 20 | 100% |
 | **Phase 2 (機能拡張)** | 🔄 進行中 | 1 | 9 | 11% |
 | **Phase 3 (運用強化)** | ⏸️ 未開始 | 0 | 4 | 0% |
 
@@ -38,6 +38,7 @@
 - ✅ P1-T17: 本番デプロイ設定（Railway / Render）
 - ✅ P1-T18: 統合テスト・E2Eテスト整備
 - ✅ P1-T19: MVP総合動作確認＆バグ修正 ⭐ NEW
+- ✅ P1-T20: Google Cloud への移行 (Cloud Run + Cloud SQL) ⭐ NEW
 - ⭐ P2-T01: YouTubeチャンネルID整合性修正（handle→channel_idマイグレーション、PubSubHubBub連携テスト）
 
 **次のタスク:** Phase 2 継続 (YouTube機能強化・Webhook化)
@@ -136,12 +137,12 @@
 
 ---
 
-### **Phase 1: MVP - Twitch対応・Freeプラン基本機能** 【完了: 19/19タスク完了】
+### **Phase 1: MVP - Twitch対応・Freeプラン基本機能** 【完了: 20/20タスク完了】
 
 **進捗状況:** 
-- ✅ 完了: 19タスク（P1-T01 〜 P1-T19）
+- ✅ 完了: 20タスク（P1-T01 〜 P1-T20）
 - ⏳ 次: Phase 2 開始
-- 📊 進捗率: 100% (19/19)
+- 📊 進捗率: 100% (20/20)
 
 ---
 
@@ -480,7 +481,7 @@
   - Jest設定の調整（`._` ファイル除外）によりテスト安定化
   - 手動確認は実装プロセス中で実施済み
 
-#### **⏳ P1-T20: Google Cloud 移行（Railway代替）**
+#### **✅ P1-T20: Google Cloud 移行（Railway代替）**
 - **説明:** 無償枠終了に伴い、本番／ステージングを Google Cloud に移設
 - **内容:**
   - Cloud Run へ Bot コンテナをデプロイ（常時起動設定、Webhook受信ポート公開）
@@ -493,6 +494,10 @@
 - **依存:** P1-T17（デプロイ設定）、P1-T18（E2Eテスト）
 - **並列可能:** Phase 2 初期タスクと並行可能 ✅
 - **テスト:** `npm run lint`, `npm run typecheck`, `npm test`, E2E疎通（PubSubHubbub/Discord通知）
+- **実装結果:**
+  - Dockerfile を本番用 multi-stage ビルドに更新（`npm ci` → build → prune）し、Cloud Run の 3000 番ポートで起動
+  - `.github/workflows/deploy-cloud-run.yml` を追加し、WIF + Cloud Build + Artifact Registry + Cloud Run でデプロイ（min-instances=0、Cloud SQL/Secret Manager はオプション引数で接続）
+  - `DEPLOY.md` を Cloud Run / Cloud SQL / Secret Manager 基準に刷新、Railway/Render は参考情報に降格
 
 ---
 

@@ -84,6 +84,12 @@ export class SubscriptionRepository {
     return subscriptions.length;
   }
 
+  async findByStreamerId(streamerId: string): Promise<Subscription[]> {
+    return this.prisma.subscription.findMany({
+      where: { streamerId },
+    });
+  }
+
   async updateNotificationMessageId(
     serverId: string,
     streamerId: string,

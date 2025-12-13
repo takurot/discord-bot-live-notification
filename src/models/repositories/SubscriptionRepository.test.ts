@@ -160,7 +160,10 @@ describe('SubscriptionRepository', () => {
 
       (mockPrisma.subscription.findUnique as jest.Mock).mockResolvedValue(mockSubscription);
 
-      const result = await repository.findByServerAndStreamer('123456789012345678', 'twitch_123456');
+      const result = await repository.findByServerAndStreamer(
+        '123456789012345678',
+        'twitch_123456'
+      );
 
       expect(result).toEqual(mockSubscription);
       expect(mockPrisma.subscription.findUnique).toHaveBeenCalledWith({
@@ -176,10 +179,12 @@ describe('SubscriptionRepository', () => {
     it('should return null when not found', async () => {
       (mockPrisma.subscription.findUnique as jest.Mock).mockResolvedValue(null);
 
-      const result = await repository.findByServerAndStreamer('123456789012345678', 'twitch_123456');
+      const result = await repository.findByServerAndStreamer(
+        '123456789012345678',
+        'twitch_123456'
+      );
 
       expect(result).toBeNull();
     });
   });
 });
-

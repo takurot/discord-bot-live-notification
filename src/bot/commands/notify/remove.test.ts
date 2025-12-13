@@ -111,10 +111,14 @@ describe('handleNotifyRemoveCommand', () => {
     );
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
-    expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith('Twitch', 'ninja', {
-      streamerId: undefined,
-      additionalChannelIds: [],
-    });
+    expect(mockStreamerRepository.findByPlatformAndChannelId).toHaveBeenCalledWith(
+      'Twitch',
+      'ninja',
+      {
+        streamerId: undefined,
+        additionalChannelIds: [],
+      }
+    );
     expect(mockSubscriptionRepository.findByServerAndStreamer).toHaveBeenCalledWith(
       '123456789',
       '123456'
@@ -127,7 +131,9 @@ describe('handleNotifyRemoveCommand', () => {
 
   it('should successfully remove a subscribed YouTube streamer', async () => {
     // モックの設定
-    (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.youtube.com/@YouTube');
+    (mockInteraction.options.getString as jest.Mock).mockReturnValue(
+      'https://www.youtube.com/@YouTube'
+    );
     (detectPlatform as jest.Mock).mockReturnValue('YouTube');
     (parseYoutubeUrl as jest.Mock).mockReturnValue('@YouTube');
 
@@ -198,14 +204,19 @@ describe('handleNotifyRemoveCommand', () => {
       '123456789',
       'UC-lHJZR3Gqxm24_Vd_AJ5Yw'
     );
-    expect(mockSubscriptionRepository.delete).toHaveBeenCalledWith('123456789', 'UC-lHJZR3Gqxm24_Vd_AJ5Yw');
+    expect(mockSubscriptionRepository.delete).toHaveBeenCalledWith(
+      '123456789',
+      'UC-lHJZR3Gqxm24_Vd_AJ5Yw'
+    );
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
       content: '✅ YouTube配信者「YouTube」を監視リストから削除しました。',
     });
   });
 
   it('should reject removing YouTube handle when API client is unavailable', async () => {
-    (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.youtube.com/@YouTube');
+    (mockInteraction.options.getString as jest.Mock).mockReturnValue(
+      'https://www.youtube.com/@YouTube'
+    );
     (detectPlatform as jest.Mock).mockReturnValue('YouTube');
     (parseYoutubeUrl as jest.Mock).mockReturnValue('@YouTube');
 
@@ -224,7 +235,9 @@ describe('handleNotifyRemoveCommand', () => {
   });
 
   it('should reject if streamer does not exist', async () => {
-    (mockInteraction.options.getString as jest.Mock).mockReturnValue('https://www.twitch.tv/invaliduser');
+    (mockInteraction.options.getString as jest.Mock).mockReturnValue(
+      'https://www.twitch.tv/invaliduser'
+    );
     (detectPlatform as jest.Mock).mockReturnValue('Twitch');
     (parseTwitchUrl as jest.Mock).mockReturnValue('invaliduser');
 
@@ -240,7 +253,8 @@ describe('handleNotifyRemoveCommand', () => {
 
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
-      content: '❌ Twitchで「invaliduser」という配信者を見つけることができませんでした。URLを確認してください。',
+      content:
+        '❌ Twitchで「invaliduser」という配信者を見つけることができませんでした。URLを確認してください。',
     });
     expect(mockSubscriptionRepository.delete).not.toHaveBeenCalled();
   });
@@ -315,4 +329,3 @@ describe('handleNotifyRemoveCommand', () => {
     expect(mockSubscriptionRepository.delete).not.toHaveBeenCalled();
   });
 });
-

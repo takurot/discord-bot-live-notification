@@ -43,4 +43,3 @@ describe('Ping Command', () => {
     }
   });
 });
-

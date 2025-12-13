@@ -17,7 +17,9 @@ describe('createLiveNotificationEmbed', () => {
     expect(embed.data.color).toBe(0x9146ff); // Twitch purple
     expect(embed.data.url).toBe('https://www.twitch.tv/ninja');
     expect(embed.data.thumbnail).toBeDefined();
-    expect(embed.data.thumbnail?.url).toBe('https://static-cdn.jtvnw.net/previews-ttv/live_user_ninja-1920x1080.jpg');
+    expect(embed.data.thumbnail?.url).toBe(
+      'https://static-cdn.jtvnw.net/previews-ttv/live_user_ninja-1920x1080.jpg'
+    );
     expect(embed.data.fields).toHaveLength(2);
     expect(embed.data.fields?.[0]?.name).toBe('カテゴリ');
     expect(embed.data.fields?.[0]?.value).toBe('Valorant');
@@ -73,4 +75,3 @@ describe('createLiveNotificationEmbed', () => {
     expect(viewerField?.value).toBe('123,456人');
   });
 });
-

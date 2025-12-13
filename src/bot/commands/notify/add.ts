@@ -113,14 +113,10 @@ export async function handleNotifyAddCommand(
     platform === 'YouTube' && channelIdentifier !== canonicalChannelId ? [channelIdentifier] : [];
 
   // Streamerの存在確認・作成
-  let streamer = await streamerRepository.findByPlatformAndChannelId(
-    platform,
-    canonicalChannelId,
-    {
-      streamerId: platform === 'YouTube' ? streamerId : undefined,
-      additionalChannelIds,
-    }
-  );
+  let streamer = await streamerRepository.findByPlatformAndChannelId(platform, canonicalChannelId, {
+    streamerId: platform === 'YouTube' ? streamerId : undefined,
+    additionalChannelIds,
+  });
   // Note: For YouTube, channelIdentifier might be a handle, but we want to store the Channel ID if possible?
   // Actually, user.id from getUser is the Channel ID (for YouTube) or User ID (for Twitch).
   // But streamerRepository stores `channelId` which is used for display/lookup?

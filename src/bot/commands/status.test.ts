@@ -54,8 +54,22 @@ describe('handleStatusCommand', () => {
 
   it('should display bot status with statistics', async () => {
     mockServerRepository.findAll.mockResolvedValue([
-      { id: '1', serverId: 'server1', planType: 'Free', joinedAt: new Date(), createdAt: new Date(), updatedAt: new Date() },
-      { id: '2', serverId: 'server2', planType: 'Free', joinedAt: new Date(), createdAt: new Date(), updatedAt: new Date() },
+      {
+        id: '1',
+        serverId: 'server1',
+        planType: 'Free',
+        joinedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: '2',
+        serverId: 'server2',
+        planType: 'Free',
+        joinedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ]);
 
     mockSubscriptionRepository.findAll.mockResolvedValue([
@@ -126,7 +140,12 @@ describe('handleStatusCommand', () => {
     const replyCall = mockInteraction.reply.mock.calls[0][0];
     expect(replyCall).toHaveProperty('embeds');
 
-    if (typeof replyCall === 'object' && replyCall !== null && 'embeds' in replyCall && replyCall.embeds) {
+    if (
+      typeof replyCall === 'object' &&
+      replyCall !== null &&
+      'embeds' in replyCall &&
+      replyCall.embeds
+    ) {
       const embed = replyCall.embeds[0];
       expect(embed).toBeDefined();
     }
@@ -179,4 +198,3 @@ describe('handleStatusCommand', () => {
     expect(mockInteraction.reply).toHaveBeenCalled();
   });
 });
-

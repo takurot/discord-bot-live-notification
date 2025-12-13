@@ -221,7 +221,7 @@ describe('TwitchApiClient', () => {
       });
 
       const expectation = expect(client.getStreams(['123'])).rejects.toThrow(
-        'Failed to get Twitch streams',
+        'Failed to get Twitch streams'
       );
 
       await jest.runAllTimersAsync();
@@ -231,4 +231,3 @@ describe('TwitchApiClient', () => {
     });
   });
 });
-

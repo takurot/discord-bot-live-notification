@@ -73,7 +73,7 @@ describe('NotificationService', () => {
     (mockClient.channels.fetch as jest.Mock) = mockFetch;
 
     mockSubscriptionRepository = new SubscriptionRepository(
-      {} as any,
+      {} as any
     ) as jest.Mocked<SubscriptionRepository>;
     mockSubscriptionRepository.updateNotificationMessageId = jest.fn().mockResolvedValue(undefined);
 
@@ -82,7 +82,7 @@ describe('NotificationService', () => {
     notificationService = new NotificationService(
       mockClient,
       mockSubscriptionRepository,
-      eventEmitter,
+      eventEmitter
     );
   });
 
@@ -118,7 +118,7 @@ describe('NotificationService', () => {
       expect(mockSubscriptionRepository.updateNotificationMessageId).toHaveBeenCalledWith(
         'server1',
         'streamer1',
-        'message123',
+        'message123'
       );
     });
 
@@ -289,7 +289,7 @@ describe('NotificationService', () => {
       expect(mockSubscriptionRepository.updateNotificationMessageId).toHaveBeenCalledWith(
         'server1',
         'streamer1',
-        null,
+        null
       );
     });
 
@@ -360,7 +360,7 @@ describe('NotificationService', () => {
 
       const embed = (notificationService as any).createStreamEmbed(
         mockStreamer,
-        largeViewerStreamData,
+        largeViewerStreamData
       );
 
       expect(embed.data.fields?.[2].value).toBe('12,345人');
@@ -378,4 +378,3 @@ describe('NotificationService', () => {
     });
   });
 });
-

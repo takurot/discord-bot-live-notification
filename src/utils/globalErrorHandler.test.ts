@@ -48,4 +48,3 @@ describe('registerGlobalErrorHandlers', () => {
     expect(offSpy).toHaveBeenCalledWith('uncaughtException', expect.any(Function));
   });
 });
-

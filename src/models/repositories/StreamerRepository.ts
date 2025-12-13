@@ -45,8 +45,8 @@ export class StreamerRepository {
   ): Promise<Streamer | null> {
     const candidateChannelIds = Array.from(
       new Set(
-        [channelId, ...(options?.additionalChannelIds ?? [])].filter(
-          (value): value is string => Boolean(value)
+        [channelId, ...(options?.additionalChannelIds ?? [])].filter((value): value is string =>
+          Boolean(value)
         )
       )
     );
@@ -56,9 +56,8 @@ export class StreamerRepository {
 
       if (candidateChannelIds.length > 0) {
         orConditions.push({
-          channelId: candidateChannelIds.length === 1
-            ? candidateChannelIds[0]
-            : { in: candidateChannelIds },
+          channelId:
+            candidateChannelIds.length === 1 ? candidateChannelIds[0] : { in: candidateChannelIds },
         });
       }
 

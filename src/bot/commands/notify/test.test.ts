@@ -43,7 +43,12 @@ describe('handleNotifyTestCommand', () => {
     const replyCall = mockInteraction.reply.mock.calls[0][0];
     expect(replyCall).toHaveProperty('embeds');
 
-    if (typeof replyCall === 'object' && replyCall !== null && 'embeds' in replyCall && replyCall.embeds) {
+    if (
+      typeof replyCall === 'object' &&
+      replyCall !== null &&
+      'embeds' in replyCall &&
+      replyCall.embeds
+    ) {
       const embed = replyCall.embeds[0];
       expect(embed).toBeDefined();
     }
@@ -58,4 +63,3 @@ describe('handleNotifyTestCommand', () => {
     }
   });
 });
-

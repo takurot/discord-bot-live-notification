@@ -124,13 +124,15 @@ export class NotificationService {
    */
   private createStreamEmbed(streamer: Streamer, streamData: StreamProviderStream): EmbedBuilder {
     // プラットフォームに応じたURLとカラーを設定
-    const platformUrl = streamer.platform === 'YouTube'
-      ? `https://www.youtube.com/watch?v=${streamData.id}`
-      : `https://www.twitch.tv/${streamer.channelId}`;
+    const platformUrl =
+      streamer.platform === 'YouTube'
+        ? `https://www.youtube.com/watch?v=${streamData.id}`
+        : `https://www.twitch.tv/${streamer.channelId}`;
 
-    const platformColor = streamer.platform === 'YouTube'
-      ? 0xff0000 // YouTube red
-      : 0x9146ff; // Twitch purple
+    const platformColor =
+      streamer.platform === 'YouTube'
+        ? 0xff0000 // YouTube red
+        : 0x9146ff; // Twitch purple
 
     const embed = new EmbedBuilder()
       .setTitle(`🔴 ${streamData.title}`)
@@ -160,9 +162,7 @@ export class NotificationService {
       let thumbnailUrl = streamData.thumbnailUrl;
       // Twitchの場合はプレースホルダーを置換
       if (streamer.platform === 'Twitch') {
-        thumbnailUrl = thumbnailUrl
-          .replace('{width}', '320')
-          .replace('{height}', '180');
+        thumbnailUrl = thumbnailUrl.replace('{width}', '320').replace('{height}', '180');
       }
       embed.setThumbnail(thumbnailUrl);
     }
@@ -257,17 +257,16 @@ export class NotificationService {
    */
   private createStreamEndedEmbed(streamer: Streamer): EmbedBuilder {
     // プラットフォームに応じたURLを設定
-    const platformUrl = streamer.platform === 'YouTube'
-      ? streamer.channelId.startsWith('@')
-        ? `https://www.youtube.com/${streamer.channelId}`
-        : `https://www.youtube.com/channel/${streamer.streamerId}`
-      : `https://www.twitch.tv/${streamer.channelId}`;
+    const platformUrl =
+      streamer.platform === 'YouTube'
+        ? streamer.channelId.startsWith('@')
+          ? `https://www.youtube.com/${streamer.channelId}`
+          : `https://www.youtube.com/channel/${streamer.streamerId}`
+        : `https://www.twitch.tv/${streamer.channelId}`;
 
     return new EmbedBuilder()
       .setTitle(`⚫ 配信終了: ${streamer.username}`)
-      .setDescription(
-        `[${streamer.username}](${platformUrl}) の配信は終了しました。`
-      )
+      .setDescription(`[${streamer.username}](${platformUrl}) の配信は終了しました。`)
       .setColor(0x2f3136)
       .setTimestamp();
   }

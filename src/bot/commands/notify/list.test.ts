@@ -86,7 +86,12 @@ describe('handleNotifyListCommand', () => {
 
     const replyCall = mockInteraction.editReply.mock.calls[0][0];
     expect(replyCall).toHaveProperty('embeds');
-    if (typeof replyCall === 'object' && replyCall !== null && 'embeds' in replyCall && replyCall.embeds) {
+    if (
+      typeof replyCall === 'object' &&
+      replyCall !== null &&
+      'embeds' in replyCall &&
+      replyCall.embeds
+    ) {
       expect(Array.isArray(replyCall.embeds)).toBe(true);
       expect(replyCall.embeds.length).toBeGreaterThan(0);
       // Embedの内容を検証
@@ -109,7 +114,8 @@ describe('handleNotifyListCommand', () => {
     expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
     expect(mockSubscriptionRepository.findByServerId).toHaveBeenCalledWith('123456789');
     expect(mockInteraction.editReply).toHaveBeenCalledWith({
-      content: '現在、監視中の配信者はいません。\n`/notify add` コマンドで配信者を追加してください。',
+      content:
+        '現在、監視中の配信者はいません。\n`/notify add` コマンドで配信者を追加してください。',
     });
   });
 
@@ -158,4 +164,3 @@ describe('handleNotifyListCommand', () => {
     expect(replyCall).toHaveProperty('embeds');
   });
 });
-

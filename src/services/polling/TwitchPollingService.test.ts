@@ -1,9 +1,6 @@
 import { TwitchPollingService } from './TwitchPollingService';
 import { TwitchApiClient } from '../twitch/TwitchApiClient';
-import {
-  SubscriptionRepository,
-  StreamerRepository,
-} from '../../models/repositories';
+import { SubscriptionRepository, StreamerRepository } from '../../models/repositories';
 import { EventEmitter } from 'events';
 
 // モックの設定
@@ -20,19 +17,19 @@ describe('TwitchPollingService', () => {
   beforeEach(() => {
     mockTwitchApiClient = new TwitchApiClient(
       'test-client-id',
-      'test-client-secret',
+      'test-client-secret'
     ) as jest.Mocked<TwitchApiClient>;
-    mockSubscriptionRepository =
-      new SubscriptionRepository(null as any) as jest.Mocked<SubscriptionRepository>;
-    mockStreamerRepository =
-      new StreamerRepository(null as any) as jest.Mocked<StreamerRepository>;
+    mockSubscriptionRepository = new SubscriptionRepository(
+      null as any
+    ) as jest.Mocked<SubscriptionRepository>;
+    mockStreamerRepository = new StreamerRepository(null as any) as jest.Mocked<StreamerRepository>;
     eventEmitter = new EventEmitter();
 
     pollingService = new TwitchPollingService(
       mockTwitchApiClient,
       mockSubscriptionRepository,
       mockStreamerRepository,
-      eventEmitter,
+      eventEmitter
     );
 
     // デフォルトのモック実装
@@ -77,9 +74,7 @@ describe('TwitchPollingService', () => {
       ];
 
       mockSubscriptionRepository.findAll.mockResolvedValue(mockSubscriptions);
-      mockStreamerRepository.findByStreamerId = jest
-        .fn()
-        .mockResolvedValue(mockStreamers[0]);
+      mockStreamerRepository.findByStreamerId = jest.fn().mockResolvedValue(mockStreamers[0]);
       mockTwitchApiClient.getStreams.mockResolvedValue([]);
 
       await pollingService.pollOnce();
@@ -263,9 +258,7 @@ describe('TwitchPollingService', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      mockSubscriptionRepository.findAll.mockRejectedValue(
-        new Error('Database error'),
-      );
+      mockSubscriptionRepository.findAll.mockRejectedValue(new Error('Database error'));
 
       await expect(pollingService.pollOnce()).rejects.toThrow('Database error');
     });
@@ -314,4 +307,3 @@ describe('TwitchPollingService', () => {
     });
   });
 });
-

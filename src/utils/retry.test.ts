@@ -28,7 +28,7 @@ describe('retryWithExponentialBackoff', () => {
         retries: 2,
         logger: mockLogger as any,
         operationName: 'test-operation',
-      }),
+      })
     ).resolves.toBe('success');
 
     await jest.advanceTimersByTimeAsync(100);
@@ -50,7 +50,7 @@ describe('retryWithExponentialBackoff', () => {
         retries: 2,
         logger: mockLogger as any,
         operationName: 'failing-operation',
-      }),
+      })
     ).rejects.toThrow('permanent failure');
 
     await jest.runAllTimersAsync();
@@ -59,4 +59,3 @@ describe('retryWithExponentialBackoff', () => {
     expect(task).toHaveBeenCalledTimes(3);
   });
 });
-

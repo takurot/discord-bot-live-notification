@@ -101,11 +101,17 @@ export async function handleNotifyRemoveCommand(
   }
 
   // Streamerの存在確認
-  const streamer = await streamerRepository.findByPlatformAndChannelId(platform, canonicalChannelId, {
-    streamerId: platform === 'YouTube' ? canonicalChannelId : undefined,
-    additionalChannelIds:
-      platform === 'YouTube' && channelIdentifier !== canonicalChannelId ? [channelIdentifier] : [],
-  });
+  const streamer = await streamerRepository.findByPlatformAndChannelId(
+    platform,
+    canonicalChannelId,
+    {
+      streamerId: platform === 'YouTube' ? canonicalChannelId : undefined,
+      additionalChannelIds:
+        platform === 'YouTube' && channelIdentifier !== canonicalChannelId
+          ? [channelIdentifier]
+          : [],
+    }
+  );
   if (!streamer) {
     await interaction.editReply({
       content: `❌ ${platform}で「${channelIdentifier}」という配信者を見つけることができませんでした。URLを確認してください。`,
@@ -136,7 +142,9 @@ export async function handleNotifyRemoveCommand(
   // PubSubHubbub購読解除 (YouTubeのみ)
   // 他のサーバーでも登録されていないか確認してから解除する
   if (platform === 'YouTube' && pubSubHubbubService) {
-    const remainingSubscriptions = await subscriptionRepository.countByStreamerId(streamer.streamerId);
+    const remainingSubscriptions = await subscriptionRepository.countByStreamerId(
+      streamer.streamerId
+    );
     if (remainingSubscriptions === 0) {
       try {
         await pubSubHubbubService.unsubscribe(streamer.streamerId);

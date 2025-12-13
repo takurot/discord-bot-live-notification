@@ -20,7 +20,7 @@ export interface SubscriptionWithStreamer extends Subscription {
 }
 
 export class SubscriptionRepository {
-  constructor(private prisma: PrismaClient) { }
+  constructor(private prisma: PrismaClient) {}
 
   async findByServerId(serverId: string): Promise<SubscriptionWithStreamer[]> {
     return this.prisma.subscription.findMany({

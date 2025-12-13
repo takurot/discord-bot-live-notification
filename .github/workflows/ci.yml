@@ -72,9 +72,9 @@ jobs:
           fi
 
           {
-            echo "summary<<'EOF'"
+            echo "summary<<EOF"
             cat "$summary_file"
-            echo 'EOF'
+            echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
           {

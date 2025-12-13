@@ -273,13 +273,9 @@ export class YouTubeApiClient implements StreamProvider {
       channelId: item.snippet.channelId ?? '',
       channelTitle: item.snippet.channelTitle ?? '',
       thumbnailUrl:
-        item.snippet.thumbnails?.high?.url ||
-        item.snippet.thumbnails?.medium?.url ||
-        '',
+        item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url || '',
       publishedAt: item.snippet.publishedAt ?? '',
-      viewerCount: liveDetails?.concurrentViewers
-        ? parseInt(liveDetails.concurrentViewers, 10)
-        : 0,
+      viewerCount: liveDetails?.concurrentViewers ? parseInt(liveDetails.concurrentViewers, 10) : 0,
       isLive: isLive,
     };
   }

@@ -1,10 +1,12 @@
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction } from 'discord.js';
 import { createLiveNotificationEmbed } from '../../../utils/notificationEmbed';
 import { logger } from '../../../utils/logger';
 
 export async function handleNotifyTestCommand(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {
+  await interaction.deferReply({ ephemeral: true });
+
   // テスト用のダミーデータ
   const testData = {
     platform: 'Twitch' as const,
@@ -18,10 +20,9 @@ export async function handleNotifyTestCommand(
 
   const embed = createLiveNotificationEmbed(testData);
 
-  await interaction.reply({
+  await interaction.editReply({
     content: '📬 テスト通知を送信します（配信開始の通知デザインプレビュー）',
     embeds: [embed],
-    flags: MessageFlags.Ephemeral,
   });
 
   logger.info('Test notification sent', {
